@@ -1,0 +1,6 @@
+[submodule "lib/libfftw"]
+	path = lib/libfftw
+	url = https://github.com/carloscn/libfftw.git
+[submodule "lib/libqwt"]
+	path = lib/libqwt
+	url = https://github.com/carloscn/libqwt.git
