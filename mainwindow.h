@@ -6,6 +6,7 @@
 #include <QWidget>
 #include <QDirModel>
 #include <QTreeView>
+#include <QFile>
 #include <QMenu>
 #include <QAction>
 #include <QInputDialog>
@@ -13,6 +14,8 @@
 #include <QTextCodec>
 #include <QkeyEvent>
 #include <QHash>
+#include <QFileDialog>
+#include <QButtonGroup>
 #include "fftw3.h"
 #include "qwt.h"
 #include <qwt_plot.h>
@@ -25,7 +28,7 @@
 #include <qwt_plot_grid.h>
 #include <qwt_scale_draw.h>
 #include "config.h"
-
+#include "configdialog.h"
 class QFtp;
 class QFile;
 class QUrlInfo;
@@ -55,7 +58,9 @@ private:
     int indexCount;
     int currentIndex;
     quint32 plotCount;
+    double *dataRomPointer;
     QPen pen;
+    int dataRange;
     QwtPlotCurve* qwtCurve1Ch1;
     QwtPlotCurve* qwtCurve1Ch2;
     QwtPlotCurve* qwtCurve1Ch3;
@@ -66,6 +71,9 @@ private:
     QwtPlotCurve* qwtCurve1Ch4Fft;
     bool isFileAutoLoad;
     QString hookFileAddr;
+    CONFIG glabalConfig;
+    bool voltage5v;
+    QButtonGroup *voltageGroup;
 
 private:
 
@@ -78,6 +86,7 @@ private:
     void initQwt();
     void qwtPlotWave( unsigned int , double* , unsigned long);
     void qwtPlotFft( int, double *, int);
+    void drawData(int pos);
 
 protected:
     void keyPressEvent(QKeyEvent *event);
@@ -98,11 +107,18 @@ private slots:
     void slotMkdir();
     void slotDeleteFile();
     void slotRefreshFtpList();
-    void on_net_plot_read(quint32 *block, quint32 length);
     void on_checkBox_autoload_clicked(bool checked);
     void on_connectButton_clicked();
     void on_cdToParentButton_clicked();
     void on_downloadButton_clicked();
+    void on_treeView_clicked(const QModelIndex &index);
+    void on_pushButtonDraw_clicked();
+    void on_horizontalSlider_do_sliderMoved(int position);
+    void on_spinBox_valueChanged(int arg1);
+    void on_drawButton_clicked();
+    void on_actionProfile_triggered();
+    void on_radioButton5v_clicked(bool checked);
+    void on_radioButton10v_clicked(bool checked);
 };
 
 #endif // MAINWINDOW_H

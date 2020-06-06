@@ -18,7 +18,23 @@ MainWindow::MainWindow(QWidget *parent) :
     this->isFileAutoLoad = ui->checkBox_autoload->isChecked();
     this->initDisplay();
     this->showLocalFile();
+    dataRomPointer = NULL;
     this->initQwt();
+    this->glabalConfig.boardIp = ui->ftpServerLineEdit->text();
+    this->glabalConfig.ftpPort = FTP_PORT;
+    this->glabalConfig.tcpPort = TCP_PORT;
+    this->glabalConfig.sampleRateKhz = 10;
+    this->glabalConfig.mask = "255.255.255.0";
+    this->glabalConfig.gate = "192.168.1.1";
+    this->glabalConfig.gainFirst = 1;
+    this->glabalConfig.gainSecond = 1;
+    this->voltageGroup = new QButtonGroup(this);
+    this->voltageGroup->addButton( ui->radioButton5v );
+    this->voltageGroup->addButton( ui->radioButton10v );
+    ui->radioButton5v->setChecked(false);
+    this->voltage5v = false;
+    this->isFileAutoLoad = ui->checkBox_autoload->isChecked();
+    //this->on_radioButton10v_clicked(true);
     connect(ui->treeView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showLocalTreeViewMenu(QPoint)));
 }
 MainWindow::~MainWindow()
@@ -164,16 +180,19 @@ void MainWindow::ftpCommandFinished(int, bool error)
             file->close();
             ui->label->setText(tr("下载完成"));
             ui->statusBar->showMessage("下载完成", 5000);
+            ui->labelRemind->setText("文件" + this->hookFileAddr + " 传输完毕");
             if (this->isFileAutoLoad == true) {
                 ui->lineEditLoadData->setText(this->hookFileAddr);
+                ui->spinBoxBlockSize->setEnabled(true);
+                qDebug() << "auto load: " << this->hookFileAddr;
             }
             currentIndex ++;
             if(currentIndex < indexCount){
                 this->downloadFtpFile(currentIndex);
             }
             else{
-                 currentIndex = 0;
-                 dirModel->refresh();
+                currentIndex = 0;
+                dirModel->refresh();
             }
         }
         ui->downloadButton->setEnabled(true);
@@ -251,10 +270,9 @@ void MainWindow::on_connectButton_clicked()
             this, SLOT(processItem(QTreeWidgetItem*, int)));
 
     QString ftpServer = ui->ftpServerLineEdit->text();
-    QString userName = "carlos";
-    QString passWord = "123456";
-    ftp->connectToHost("127.0.0.1", SERVERPORT);
-    qDebug() << "connect!";
+    QString userName = "root";
+    QString passWord = "";
+    ftp->connectToHost(ftpServer, FTP_PORT);
     ftp->login(userName,passWord);
     ui->statusBar->showMessage("和信号板建立FTP连接中...", 5000);
 }
@@ -268,12 +286,11 @@ void MainWindow::addToList(const QUrlInfo &urlInfo)
     item->setText(0, _FromSpecialEncoding(urlInfo.name()));
     double  dFileSize = ((int)(urlInfo.size()/1024.0*100))/100.0;
     QString fileSize = QString::number(dFileSize,'g',10)+"KB";
-
     item->setText(1, fileSize);
     item->setText(2, urlInfo.lastModified().toString("MMM dd yyyy"));
     item->setText(3, urlInfo.owner());
     item->setText(4, urlInfo.group());
-    QPixmap pixmap(urlInfo.isDir() ? "./dir.png" : "./file.png");
+    QPixmap pixmap(urlInfo.isDir() ? ":/dir.png" : ":/file.png");
     item->setIcon(0, pixmap);
     isDirectory[_FromSpecialEncoding(urlInfo.name())] = urlInfo.isDir();
     ui->fileList->addTopLevelItem(item);
@@ -334,6 +351,10 @@ void MainWindow::on_downloadButton_clicked()
     ui->downloadButton->setEnabled(false);
     currentIndex = 0;
     this->downloadFtpFile(currentIndex);
+    if (this->dataRomPointer != NULL) {
+        delete(this->dataRomPointer);
+        this->dataRomPointer = NULL;
+    }
 }
 void MainWindow::downloadFtpFile(int rowIndex)
 {
@@ -366,29 +387,29 @@ void MainWindow::updateDataTransferProgress(qint64 readBytes,qint64 totalBytes)
 //本地目录操作
 void MainWindow::showLocalFile()
 {
-        dirModel = new QDirModel;
+    dirModel = new QDirModel;
 
-        dirModel->setReadOnly(false);
-        dirModel->setSorting(QDir::DirsFirst | QDir::IgnoreCase | QDir::Name);
+    dirModel->setReadOnly(false);
+    dirModel->setSorting(QDir::DirsFirst | QDir::IgnoreCase | QDir::Name);
 
-        //QTreeView treeView = new QTreeView;
-        ui->treeView->setModel(dirModel);
-       // ui->treeView->setRootIndex(dirModel->index("c:\\"));
-        ui->treeView->header()->setStretchLastSection(true);
-        ui->treeView->header()->setSortIndicator(0, Qt::AscendingOrder);
-        ui->treeView->header()->setSortIndicatorShown(true);
-        //ui->treeView->header()->setClickable(true);
+    //QTreeView treeView = new QTreeView;
+    ui->treeView->setModel(dirModel);
+    // ui->treeView->setRootIndex(dirModel->index("c:\\"));
+    ui->treeView->header()->setStretchLastSection(true);
+    ui->treeView->header()->setSortIndicator(0, Qt::AscendingOrder);
+    ui->treeView->header()->setSortIndicatorShown(true);
+    //ui->treeView->header()->setClickable(true);
 
-        QModelIndex index = dirModel->index(QDir::currentPath());
-        ui->treeView->expand(index);
-        ui->treeView->scrollTo(index);
-        ui->treeView->resizeColumnToContents(0);
+    QModelIndex index = dirModel->index(QDir::currentPath());
+    ui->treeView->expand(index);
+    ui->treeView->scrollTo(index);
+    ui->treeView->resizeColumnToContents(0);
 
-        QPushButton *createBtn = new QPushButton(tr("Create Directory..."));
-        QPushButton *delBtn = new QPushButton(tr("Remove"));
+    QPushButton *createBtn = new QPushButton(tr("Create Directory..."));
+    QPushButton *delBtn = new QPushButton(tr("Remove"));
 
-        connect(createBtn, SIGNAL(clicked()), this, SLOT(mkdir()));
-        connect(delBtn, SIGNAL(clicked()), this, SLOT(rm()));
+    connect(createBtn, SIGNAL(clicked()), this, SLOT(mkdir()));
+    connect(delBtn, SIGNAL(clicked()), this, SLOT(rm()));
 }
 
 void MainWindow::mkdir()
@@ -434,7 +455,7 @@ void MainWindow::uploadLocalFile(int rowIndex)
         delete file;
         return;
     }
-   ftp->put(file,_ToSpecialEncoding(fileInfo.fileName()));
+    ftp->put(file,_ToSpecialEncoding(fileInfo.fileName()));
 }
 
 //有FTP端编码转本地编码
@@ -478,6 +499,7 @@ void MainWindow::showFtpTreeViewMenu(const QPoint &pos)
     QMenu* menu=new QMenu;
     menu->addAction(QString(tr("新建文件夹")),this,SLOT(slotMkdir()));
     menu->addAction(QString(tr("刷新")),this,SLOT(slotRefreshFtpList()));
+    menu->addAction(QString(tr("下载")),this,SLOT(on_downloadButton_clicked()));
     menu->addAction(QString(tr("删除")),this,SLOT(slotDeleteFile()));
     menu->exec(QCursor::pos());
 }
@@ -544,9 +566,9 @@ void MainWindow::rm()
             ok = dirModel->remove(index);
         }
         if (!ok) {
-//            QMessageBox::information(this,
-//                                     tr("Remove"),
-//                                     tr("Failed to remove %1").arg(dirModel->fileName(indexList.at(i))));
+            //            QMessageBox::information(this,
+            //                                     tr("Remove"),
+            //                                     tr("Failed to remove %1").arg(dirModel->fileName(indexList.at(i))));
         }
     }
 }
@@ -564,97 +586,12 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 }
 
 
-void MainWindow::on_net_plot_read(quint32 *block, quint32 length)
-{
-    qint32 channel_a[500];
-    qint32 channel_b[500];
-    qint32 channel_c[500];
-    qint32 channel_d[500];
-
-    double channel_a_d[500];
-    double channel_b_d[500];
-    double channel_c_d[500];
-    double channel_d_d[500];
-    //qDebug() << "slot plot!";
-
-    for (quint32 i = 0; i < length/4; i ++) {
-        channel_a[i] = (qint32) block[i] << 8;
-        channel_b[i] = (qint32) block[(length/4)+i] << 8;// & (0xFFFFFF)) * (((block[500+i] & 0x800000) >> 23)?1:-1);
-        channel_c[i] = (qint32) block[2*(length/4)+i] << 8;// & (0xFFFFFF))* (((block[2*500+i] & 0x800000) >> 23)?1:-1);
-        channel_d[i] = (qint32) block[3*(length/4)+i] << 8;// & (0xFFFFFF))* (((block[3*500+i] & 0x800000) >> 23)?1:-1);
-    }
-
-    for (quint32 i = 0; i < (length/4); i ++) {
-        channel_a_d[i] = channel_d[i] / 256 / 1000000000.0 * 488.0;
-        channel_b_d[i] = channel_c[i] / 256 / 1000000000.0 * 488.0;
-        channel_c_d[i] = channel_b[i] / 256 / 1000000000.0 * 488.0;
-        channel_d_d[i] = channel_a[i] / 256 / 1000000000.0 * 488.0;
-        //qDebug() << "sample: " << channel_a_d[i];
-    }
-
-    if (ui->checkBox_ch1_time->isChecked()) {
-        this->qwtCurve1Ch1->attach(ui->qwt_ch);
-        qwtPlotWave(CHANNEL_0, channel_a_d, (length/4));
-    }else{
-        this->qwtCurve1Ch1->detach();
-    }
-    if (ui->checkBox_ch2_time->isChecked()) {
-        this->qwtCurve1Ch2->attach(ui->qwt_ch);
-        qwtPlotWave(CHANNEL_1, channel_b_d, (length/4));
-    }else{
-        this->qwtCurve1Ch2->detach();
-    }
-
-    if (ui->checkBox_ch3_time->isChecked()) {
-        this->qwtCurve1Ch3->attach(ui->qwt_ch);
-        qwtPlotWave(CHANNEL_2, channel_c_d, (length/4));
-    }else{
-        this->qwtCurve1Ch3->detach();
-    }
-    if (ui->checkBox_ch4_time->isChecked()) {
-        this->qwtCurve1Ch4->attach(ui->qwt_ch);
-        qwtPlotWave(CHANNEL_3, channel_d_d, (length/4));
-    }else{
-        this->qwtCurve1Ch4->detach();
-    }
-
-
-    if (ui->checkBox_ch1_fft->isChecked()) {
-        this->qwtCurve1Ch1Fft->attach(ui->qwt_fft);
-        qwtPlotFft(CHANNEL_0, channel_a_d, (length/4));
-    }else{
-        this->qwtCurve1Ch1Fft->detach();
-    }
-
-    if (ui->checkBox_ch2_fft->isChecked()) {
-        this->qwtCurve1Ch2Fft->attach(ui->qwt_fft);
-        qwtPlotFft(CHANNEL_1, channel_b_d, (length/4));
-    }else{
-        this->qwtCurve1Ch2Fft->detach();
-    }
-
-    if (ui->checkBox_ch3_fft->isChecked()) {
-        this->qwtCurve1Ch3Fft->attach(ui->qwt_fft);
-        qwtPlotFft(CHANNEL_2, channel_c_d, (length/4));
-    }else{
-        this->qwtCurve1Ch3Fft->detach();
-    }
-
-    if (ui->checkBox_ch4_fft->isChecked()) {
-        this->qwtCurve1Ch4Fft->attach(ui->qwt_fft);
-        qwtPlotFft(CHANNEL_3, channel_d_d, (length/4));
-    }else{
-        this->qwtCurve1Ch4Fft->detach();
-    }
-
-}
-
 void MainWindow::qwtPlotFft(int channel, double *rom, int NP)
 {
     fftwf_plan p;
     fftwf_complex  *in1_c = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)* NP);;
     fftwf_complex  *out1_c = (fftwf_complex *)fftwf_malloc(sizeof(fftwf_complex) * NP);
-    float ui_sample_freq = 250000.0;
+    float ui_sample_freq = (float)this->glabalConfig.sampleRateKhz * 1000.0f;
     QVector<QPointF> vector;
     double current_fft_value;
 
@@ -668,7 +605,7 @@ void MainWindow::qwtPlotFft(int channel, double *rom, int NP)
     for( quint64 i = 0; i < step ; i++ ){
         QPointF point;
         current_fft_value = sqrt(out1_c[i][0] * out1_c[i][0] + out1_c[i][1] * out1_c[i][1]);
-        point.setX((ui_sample_freq/500)*i);
+        point.setX((ui_sample_freq/ui->spinBoxBlockSize->value())*i);
         if ( i < 2 )
             point.setY(0);
         else
@@ -703,6 +640,7 @@ void MainWindow::qwtPlotWave(unsigned int channel, double *data, unsigned long l
         QPointF point;
         point.setX( i );
         point.setY( data[i] );
+        //qDebug() << i << ": " << data[i] << ",";
         vector.append(point);
     }
     QwtPointSeriesData* series = new QwtPointSeriesData(vector);
@@ -733,4 +671,142 @@ void MainWindow::qwtPlotWave(unsigned int channel, double *data, unsigned long l
 void MainWindow::on_checkBox_autoload_clicked(bool checked)
 {
     this->isFileAutoLoad = checked;
+}
+
+void MainWindow::on_treeView_clicked(const QModelIndex &index)
+{
+    QModelIndexList indexList = ui->treeView->selectionModel()->selectedRows();
+    QFileInfo fileInfo = dirModel->fileInfo(indexList.at(0));
+    QString fileName = fileInfo.absoluteFilePath();
+    ui->currentPathText->setText(fileName);
+}
+
+void MainWindow::on_pushButtonDraw_clicked()
+{
+    QString dataFile = ui->lineEditLoadData->text();
+    QFile file(dataFile);
+    QFileInfo fileInfo;
+    quint64 dataLen;
+    float A = 0;
+    fileInfo.setFile(dataFile);
+    dataLen = fileInfo.size();
+    qDebug() <<"file size : " << dataLen;
+    bool isOk = file.open(QIODevice::ReadOnly);
+    QByteArray fileData;
+    fileData.clear();
+    fileData = file.read(dataLen);
+    file.close();
+    dataLen = dataLen/2;
+    quint16 dataTemp = 0;
+    quint16 dataLow,dataHigh;
+    int range = dataLen / ui->spinBoxBlockSize->value() - 1;
+    ui->spinBox->setRange(0,range);
+    ui->horizontalSlider_do->setRange(0, range);
+    this->dataRange = range;
+    double *dataRom = new double[dataLen + 1];
+    if (this->voltage5v == true) {
+        A = 5.0f;
+    }else {
+        A = 10.0f;
+    }
+    for(quint64 i = 0; i < dataLen; i ++) {
+        dataTemp = 0;
+        if (i == 0) {
+            dataLow = fileData.at(0)&0xFF;
+            dataHigh = fileData.at(1)&0xFF;
+            dataTemp = (((dataHigh) << 8) | (dataLow));
+        }else{
+            dataLow = fileData.at(2*i-1);
+            dataHigh = fileData.at(2*i);
+            dataTemp = (((dataHigh) << 8) | (dataLow));
+        }
+        if (dataTemp < 32768)
+            dataRom[i] = ((double)(qint16)dataTemp) / 32768.0 * A;
+        if (dataTemp >= 32768) {
+            dataTemp = 65535 -  dataTemp;
+            dataRom[i] = -1*((double)(qint16)dataTemp) / 32768.0 * A;
+        }
+    }
+
+    this->dataRomPointer = dataRom;
+    ui->spinBoxBlockSize->setEnabled(false);
+    on_spinBox_valueChanged(0);
+}
+
+
+void MainWindow::on_horizontalSlider_do_sliderMoved(int position)
+{
+    ui->spinBox->setValue(position);
+    this->drawData(position);
+}
+
+void MainWindow::on_spinBox_valueChanged(int arg1)
+{
+    ui->horizontalSlider_do->setValue(arg1);
+    this->drawData(arg1);
+}
+
+void MainWindow::drawData(int pos)
+{
+    qwtPlotWave(CHANNEL_0, (double*)(&dataRomPointer[ui->spinBoxBlockSize->value()*pos] ), ui->spinBoxBlockSize->value());
+    qwtPlotFft(CHANNEL_0, (double*)(&dataRomPointer[ui->spinBoxBlockSize->value()*pos]), ui->spinBoxBlockSize->value());
+}
+
+void MainWindow::on_drawButton_clicked()
+{
+    QByteArray Doc;
+    QString file_name = QFileDialog::getOpenFileName(this,
+                                                     tr("Open File"),
+                                                     this->hookFileAddr,
+                                                     "Data Document(*.txt)",
+                                                     0);
+    if (!file_name.isNull()) {
+        qDebug() << file_name ;
+    }else{
+        qDebug() << "cancel " ;
+        return;
+    }
+    ui->lineEditLoadData->setText(file_name);
+    ui->spinBoxBlockSize->setEnabled(true);
+}
+
+void MainWindow::on_actionProfile_triggered()
+{
+    int ret = 0;
+    configDialog *dialog = new configDialog(this);
+    ret = dialog->set_config(&this->glabalConfig);
+    if (ret != true) {
+        QMessageBox::critical(   this,
+                                 tr("错误提示"),
+                                 tr("与下位机TCP网络通信失败！"));
+        delete dialog;
+        return;
+    }
+    dialog->setModal(false);
+    dialog->show();
+}
+
+
+void MainWindow::on_radioButton5v_clicked(bool checked)
+{
+    this->voltage5v = checked;
+    if (this->voltage5v == true)
+        qDebug() << "current set 5V";
+    else
+        qDebug() << "current set 10V";
+    ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
+    ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -6.1, 6.1);
+    ui->qwt_ch->replot();
+}
+
+void MainWindow::on_radioButton10v_clicked(bool checked)
+{
+    this->voltage5v = !checked;
+    if (this->voltage5v == true)
+        qDebug() << "current set 5V";
+    else
+        qDebug() << "current set 10V";
+    ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
+    ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -12.1, 12.1);
+    ui->qwt_ch->replot();
 }

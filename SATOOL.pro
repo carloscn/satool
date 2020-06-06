@@ -37,14 +37,19 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+    netclientthread.cpp \
+    configdialog.cpp
 
 HEADERS += \
         mainwindow.h \
-    config.h
+    config.h \
+    netclientthread.h \
+    configdialog.h
 
 FORMS += \
-        mainwindow.ui
+        mainwindow.ui \
+    configdialog.ui
 
 win32 {
     INCLUDEPATH += $${WIN_QWT_DIR}\include
@@ -66,3 +71,6 @@ linux-g++ {
     LIBS += -L"$${LINUX_QWT_DIR}/lib/" -lqwt
     LIBS += $${LINUX_FFTW_DIR}/lib/libfftw3f.a
 }
+
+RESOURCES += \
+    source.qrc

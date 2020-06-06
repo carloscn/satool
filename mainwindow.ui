@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1141</width>
-    <height>612</height>
+    <width>1200</width>
+    <height>708</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -40,7 +40,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="loadButton">
+          <widget class="QPushButton" name="drawButton">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -57,44 +57,40 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_10">
          <item>
-          <widget class="QCheckBox" name="checkBox_ch1_time">
+          <widget class="QLabel" name="label_4">
            <property name="text">
-            <string>CH1</string>
+            <string>量程范围：</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QCheckBox" name="checkBox_ch2_time">
+          <widget class="QRadioButton" name="radioButton5v">
            <property name="text">
-            <string>CH2</string>
+            <string>5V</string>
            </property>
            <property name="checked">
+            <bool>false</bool>
+           </property>
+           <property name="autoRepeat">
             <bool>true</bool>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QCheckBox" name="checkBox_ch3_time">
+          <widget class="QRadioButton" name="radioButton10v">
            <property name="text">
-            <string>CH3</string>
+            <string>10V</string>
            </property>
            <property name="checked">
+            <bool>true</bool>
+           </property>
+           <property name="autoRepeat">
             <bool>true</bool>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QCheckBox" name="checkBox_ch4_time">
-           <property name="text">
-            <string>CH4</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_4">
+          <spacer name="horizontalSpacer_3">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
@@ -105,6 +101,37 @@
             </size>
            </property>
           </spacer>
+         </item>
+         <item>
+          <widget class="Line" name="line_2">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>块大小：</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="spinBoxBlockSize">
+           <property name="maximum">
+            <number>99999</number>
+           </property>
+           <property name="value">
+            <number>128</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButtonDraw">
+           <property name="text">
+            <string>绘制</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -119,61 +146,7 @@
         </widget>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_11">
-         <item>
-          <widget class="QCheckBox" name="checkBox_ch1_fft">
-           <property name="text">
-            <string>CH1 FFT</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="checkBox_ch2_fft">
-           <property name="text">
-            <string>CH2 FFT</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="checkBox_ch3_fft">
-           <property name="text">
-            <string>CH3 FFT</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="checkBox_ch4_fft">
-           <property name="text">
-            <string>CH4 FFT</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_5">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
+        <layout class="QHBoxLayout" name="horizontalLayout_11"/>
        </item>
        <item>
         <widget class="QwtPlot" name="qwt_fft">
@@ -215,10 +188,17 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1141</width>
-     <height>25</height>
+     <width>1200</width>
+     <height>26</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>设置</string>
+    </property>
+    <addaction name="actionProfile"/>
+   </widget>
+   <addaction name="menuSettings"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -252,7 +232,7 @@
          <item>
           <widget class="QLineEdit" name="ftpServerLineEdit">
            <property name="text">
-            <string/>
+            <string>192.168.1.10</string>
            </property>
            <property name="placeholderText">
             <string>请输入FTP服务器IP地址</string>
@@ -380,13 +360,20 @@
          <item>
           <widget class="QLabel" name="label">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="text">
-            <string>本地目录：</string>
+            <string>当前目录：</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="currentPathText">
+           <property name="text">
+            <string>None</string>
            </property>
           </widget>
          </item>
@@ -425,8 +412,17 @@
         <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
           <widget class="QCheckBox" name="checkBox_autoload">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="text">
             <string>下载后自动载入绘图</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -463,6 +459,11 @@
     </layout>
    </widget>
   </widget>
+  <action name="actionProfile">
+   <property name="text">
+    <string>进入配置</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
