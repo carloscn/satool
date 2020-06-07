@@ -6,13 +6,13 @@
 
 
 LINUX_QWT_DIR=../SATOOL/lib/libqwt/qwt-gcc-6.1.3
-LINUX_FFTW_DIR=../SATOOL/lib/libfftw/fftw-gcc
+LINUX_FFTW_DIR=./SATOOL/lib/libfftw/fftw-gcc
 
 WIN_QWT_DIR=..\SATOOL\lib\libqwt\qwt-mingw32\qwt-6.1.3
-WIN_FFTW_DIR=..\SATOOL\lib\libfftw\fftw-mingw32
+WIN_FFTW_DIR=..\SATOOL\lib\libfftw\fftw-mingw32\b32
 
-ARM_QWT_DIR=../SATOOL/lib/libqwt/qwt-arch64-6.1.3
-ARM_FFTW_DIR=../SATOOL/lib/libfftw/fftw-arch64
+ARM_QWT_DIR=./SATOOL/lib/libqwt/qwt-arch64-6.1.3
+ARM_FFTW_DIR=./SATOOL/lib/libfftw/fftw-arch64
 # add file: qwt.dll file: libfftw3f-3.dll to *.exe path
 
 QT          += core gui sql xml widgets printsupport

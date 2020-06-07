@@ -1,3 +1,44 @@
+/**
+ * \brief   This project about SATOOL.
+ *
+ * \License  THIS FILE IS PART OF MULTIBEANS PROJECT;
+ *           all of the files  - The core part of the project;
+ *           THIS PROGRAM IS NOT FREE SOFTWARE, NEED MULTIBEANS ORG LIC;
+ *           YOU SHOULD HAVE RECEIVED A COPY OF WTFPL LICENSE.
+ *
+ *                ________________     ___           _________________
+ *               |    __    __    |   |   |         |______     ______|
+ *               |   |  |  |  |   |   |   |                |   |
+ *               |   |  |__|  |   |   |   |________        |   |
+ *               |___|        |___|   |____________|       |___|
+ *
+ *                               MULTIBEANS ORG.
+ *                     Homepage: http://www.mlts.tech/
+ *
+ *           * You can download the license on our Github. ->
+ *           * -> https://github.com/carloscn/satool  <-
+ *           * Copyright (c) 2013-2020 MULTIBEANS ORG. www.mlts.tech/
+ *           * Copyright (c) 2020 (Carlos Wei: # carlos@mlts.tech).
+ *
+ *  \note    Code license for Xiaoji Zhang of NWPU.
+ ****************************************************************************/
+/*                                                                          */
+/*  @File       : main.c                                                    */
+/*  @Revision   : Ver 1.0.                                                  */
+/*  @Date       : 2020.06.07 Realse.                                        */
+/*  @Belong     : PROJECT.                                                  */
+/*  @GitHub     :                                                           */
+/*  @ASCII : (GBK/GB2312) in Qt Windows.                                    */
+/****************************************************************************/
+/*  @Attention:                                                             */
+/*  ---------------------------------------------------------------------   */
+/*  |    Data    |  Behavior |     Offer     |          Content         |   */
+/*  |------------|-----------|---------------|--------------------------|   */
+/*  | 2020.06.01 |   create  |Carlos Wei(M)  | add all device driver.   |   */
+/*  ---------------------------------------------------------------------   */
+/*                                                            MULTIBEANS.   */
+/****************************************************************************/
+
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QFtp>
@@ -49,6 +90,7 @@ void MainWindow::initQwt()
     QFont font;
     double sinTable[1024];
     QBrush brush2(QColor(128,128,128));
+    QPen ch1Pen(Qt::green, 3, Qt::DashDotLine, Qt::RoundCap, Qt::RoundJoin);
     QwtPlotGrid* gridCh = new QwtPlotGrid();
     QwtPlotGrid* gridFft = new QwtPlotGrid();
 
@@ -59,33 +101,33 @@ void MainWindow::initQwt()
                                                      QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
                                                      ui->qwt_fft->canvas() );
 
-    brush2.setStyle(Qt::NoBrush);
-    title.setText("时域波形图");
-    ui->qwt_ch->setAxisTitle(2,"伏特(V)");
+    brush2.setStyle(Qt::Dense7Pattern);
+    title.setText("Time Domain");
+    ui->qwt_ch->setAxisTitle(2,"Voltage(V)");
     ui->qwt_ch->setTitle(title);
-    title.setText("频域波形图");
+    title.setText("FFT");
     ui->qwt_fft->setTitle(title);
     ui->qwt_fft->setAxisTitle(2,"Hz");
     ui->qwt_ch->insertLegend(new QwtLegend(), QwtPlot::TopLegend);
     ui->qwt_fft->insertLegend(new QwtLegend(), QwtPlot::TopLegend);
     ui->qwt_ch->setStyleSheet("background-color:rgb(255,255,255)");
     ui->qwt_fft->setStyleSheet("background-color:rgb(255,255,255)");
-    this->qwtCurve1Ch1 = new QwtPlotCurve("通道1（单位V）");
-    this->qwtCurve1Ch2 = new QwtPlotCurve("通道2（单位V）");
-    this->qwtCurve1Ch3 = new QwtPlotCurve("通道3（单位V）");
-    this->qwtCurve1Ch4 = new QwtPlotCurve("通道4（单位V）");
+    this->qwtCurve1Ch1 = new QwtPlotCurve("Channel1");
+    this->qwtCurve1Ch2 = new QwtPlotCurve("Channel2");
+    this->qwtCurve1Ch3 = new QwtPlotCurve("Channel3");
+    this->qwtCurve1Ch4 = new QwtPlotCurve("Channel4");
     this->qwtCurve1Ch1Fft = new QwtPlotCurve("CH1 FFT");
     this->qwtCurve1Ch2Fft = new QwtPlotCurve("CH2 FFT");
     this->qwtCurve1Ch3Fft = new QwtPlotCurve("CH3 FFT");
     this->qwtCurve1Ch4Fft = new QwtPlotCurve("CH4 FFT");
-    this->qwtCurve1Ch1->setPen(QColor(157,97,169),2.5,Qt::SolidLine);
-    this->qwtCurve1Ch1Fft->setPen(QColor(157,97,169),2.5,Qt::SolidLine);
+    this->qwtCurve1Ch4->setPen(ch1Pen);
+    this->qwtCurve1Ch4Fft->setPen(ch1Pen);
     this->qwtCurve1Ch2->setPen(QColor(241,196,86),2.5,Qt::SolidLine);
     this->qwtCurve1Ch2Fft->setPen(QColor(241,196,86),2.5,Qt::SolidLine);
     this->qwtCurve1Ch3->setPen(QColor(50,141,202),2.5,Qt::SolidLine);
     this->qwtCurve1Ch3Fft->setPen(QColor(50,141,202),2.5,Qt::SolidLine);
-    this->qwtCurve1Ch4->setPen(QColor(220,95,47),2.5,Qt::SolidLine);
-    this->qwtCurve1Ch4Fft->setPen(QColor(220,95,47),2.5,Qt::SolidLine);
+    this->qwtCurve1Ch1->setPen(QColor(220,95,47),2.5,Qt::SolidLine);
+    this->qwtCurve1Ch1Fft->setPen(QColor(220,95,47),2.5,Qt::SolidLine);
     this->qwtCurve1Ch1->setBrush(brush2);
     this->qwtCurve1Ch2->setBrush(brush2);
     this->qwtCurve1Ch3->setBrush(brush2);
