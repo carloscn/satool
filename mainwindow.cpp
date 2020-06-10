@@ -643,7 +643,7 @@ void MainWindow::qwtPlotFft(int channel, double *rom, int NP)
     }
     p = fftwf_plan_dft_1d(NP, in1_c, out1_c, FFTW_FORWARD, FFTW_ESTIMATE);
     fftwf_execute(p);
-    int step=120;
+    int step=NP/2;
     for( quint64 i = 0; i < step ; i++ ){
         QPointF point;
         current_fft_value = sqrt(out1_c[i][0] * out1_c[i][0] + out1_c[i][1] * out1_c[i][1]);
@@ -739,8 +739,9 @@ void MainWindow::on_pushButtonDraw_clicked()
     fileData = file.read(dataLen);
     file.close();
     dataLen = dataLen/2;
-    quint16 dataTemp = 0;
-    quint16 dataLow,dataHigh;
+    qint16 dataTemp = 0;
+    double dataTempDouble = 0.0;
+    quint8 dataLow,dataHigh;
     int range = dataLen / ui->spinBoxBlockSize->value() - 1;
     ui->spinBox->setRange(0,range);
     ui->horizontalSlider_do->setRange(0, range);
@@ -756,18 +757,18 @@ void MainWindow::on_pushButtonDraw_clicked()
         if (i == 0) {
             dataLow = fileData.at(0)&0xFF;
             dataHigh = fileData.at(1)&0xFF;
-            dataTemp = (((dataHigh) << 8) | (dataLow));
+            dataTemp = dataLow;
+            dataTemp = (dataTemp << 8) & 0xFF00;
+            dataTemp |= dataHigh;
         }else{
             dataLow = fileData.at(2*i-1);
             dataHigh = fileData.at(2*i);
-            dataTemp = (((dataHigh) << 8) | (dataLow));
+            dataTemp = dataLow;
+            dataTemp = (dataTemp << 8) & 0xFF00;
+            dataTemp |= dataHigh;
         }
-        if (dataTemp < 32768)
-            dataRom[i] = ((double)(qint16)dataTemp) / 32768.0 * A;
-        if (dataTemp >= 32768) {
-            dataTemp = 65535 -  dataTemp;
-            dataRom[i] = -1*((double)(qint16)dataTemp) / 32768.0 * A;
-        }
+        dataTempDouble = dataTemp * 1.0;
+        dataRom[i] = dataTempDouble / 32768.0 * A;
     }
 
     this->dataRomPointer = dataRom;
