@@ -40,6 +40,14 @@
 #include <QHash>
 #include <QFileDialog>
 #include <QButtonGroup>
+#include <QFtp>
+#include <QDebug>
+#include <QSqlTableModel>
+#include <QSqlQuery>
+#include <QTreeWidgetItem>
+#include <QXmlStreamReader>
+#include <QAbstractItemView>
+#include <QMessageBox>
 #include "fftw3.h"
 #include "qwt.h"
 #include <qwt_plot.h>
@@ -51,6 +59,7 @@
 #include <qwt_plot_magnifier.h>
 #include <qwt_plot_grid.h>
 #include <qwt_scale_draw.h>
+#include "saxydatatracker.h"
 #include "config.h"
 #include "configdialog.h"
 class QFtp;
@@ -98,6 +107,7 @@ private:
     CONFIG glabalConfig;
     bool voltage5v;
     QButtonGroup *voltageGroup;
+    NetClientThread *socket;
 
 private:
 
@@ -143,6 +153,11 @@ private slots:
     void on_actionProfile_triggered();
     void on_radioButton5v_clicked(bool checked);
     void on_radioButton10v_clicked(bool checked);
+    void on_actionstartSample_triggered(bool checked);
+    void on_actionstopSample_triggered();
+    void on_actionlinkTcp_triggered();
+    void on_actionDownloadFile_triggered();
+    void on_actionconfig_triggered();
 };
 
 #endif // MAINWINDOW_H

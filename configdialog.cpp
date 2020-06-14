@@ -36,8 +36,6 @@ configDialog::configDialog(QWidget *parent) :
 
 configDialog::~configDialog()
 {
-    this->net_socket->set_disconnet();
-    delete this->net_socket;
     delete ui;
 }
 
@@ -71,6 +69,19 @@ QString configDialog::get_local_ip()
 
 void configDialog::on_pushButton_set_to_server_clicked()
 {
+    bool allowFlag = false;
+    QMessageBox message1(QMessageBox::Critical, "警告",
+                         "确定要更新IP信息，如果更改IP信息则需要重新配置软件网络，是否确定更改？",
+                         QMessageBox::Yes | QMessageBox::No, NULL);
+    if(message1.exec() == QMessageBox::Yes) {
+        QMessageBox message2(QMessageBox::Critical, "警告",
+                             "请再一次确认？要更改IP，谨慎操作！",
+                             QMessageBox::Yes | QMessageBox::No, NULL);
+        if(message2.exec() == QMessageBox::Yes)
+            allowFlag = true;
+    }
+    if(allowFlag == false)
+        return;
     QByteArray ip;
     QByteArray mask;
     QByteArray gate;
@@ -108,7 +119,7 @@ void configDialog::on_pushButton_set_to_server_clicked()
         memcpy(this->cfg, &backConfig, sizeof(CONFIG));
         QMessageBox::critical(this, "错误提示", "网络数据校验失败，没有配置成功");
     }else{
-        QMessageBox::information(this, "提示", "已写入配置");
+        QMessageBox::information(this, "提示", "已写入IP配置，请重启板子和该软件，并输入正确IP");
     }
 }
 
@@ -137,17 +148,12 @@ void configDialog::on_pushButton_set_clear_clicked()
 
 }
 
-int configDialog::set_config(CONFIG *cfg)
+int configDialog::set_config(CONFIG *cfg, NetClientThread *socket)
 {
     int ret = 0;
     this->tcp_target_ip = cfg->boardIp;
     this->tcp_target_port = cfg->tcpPort;
-    this->net_socket = new NetClientThread(this->tcp_target_ip, this->tcp_target_port);
-    ret = net_socket->set_connect(this->tcp_target_ip, this->tcp_target_port);
-    if (ret != true) {
-        qDebug("network failed!");
-        return ret;
-    }
+    this->net_socket = socket;
     this->cfg = cfg;
 
     ui->lineEdit_set_gate->setText(cfg->gate);

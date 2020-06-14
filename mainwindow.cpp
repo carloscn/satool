@@ -41,19 +41,12 @@
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <QFtp>
-#include <QDebug>
-#include <QFile>
-#include <QSqlTableModel>
-#include <QSqlQuery>
-#include <QTreeWidgetItem>
-#include <QXmlStreamReader>
-#include <QAbstractItemView>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    int ret = 0;
     ui->setupUi(this);
     this->setWindowTitle("SATOOT ftpClient for OMAL138");
     this->isFileAutoLoad = ui->checkBox_autoload->isChecked();
@@ -75,8 +68,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->radioButton5v->setChecked(false);
     this->voltage5v = false;
     this->isFileAutoLoad = ui->checkBox_autoload->isChecked();
+    this->socket = new NetClientThread(this->glabalConfig.boardIp, this->glabalConfig.tcpPort);
     //this->on_radioButton10v_clicked(true);
     connect(ui->treeView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showLocalTreeViewMenu(QPoint)));
+    ret = this->socket->set_connect(this->glabalConfig.boardIp, this->glabalConfig.tcpPort);
+    if (ret != true) {
+        QMessageBox::critical(this, "错误", "与下位机TCP通信失败，请检查与板子网络连接！");
+    }
+    ui->statusBar->showMessage("与板子TCP通信成功", 5000);
 }
 MainWindow::~MainWindow()
 {
@@ -97,10 +96,11 @@ void MainWindow::initQwt()
     QwtPlotPicker *m_picker_ch = new QwtPlotPicker( QwtPlot::xBottom, QwtPlot::yLeft,
                                                     QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
                                                     ui->qwt_ch->canvas() );
-    QwtPlotPicker *m_picker_fft = new QwtPlotPicker( QwtPlot::xBottom, QwtPlot::yLeft,
-                                                     QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
-                                                     ui->qwt_fft->canvas() );
-
+//    QwtPlotPicker *m_picker_fft = new QwtPlotPicker( QwtPlot::xBottom, QwtPlot::yLeft,
+//                                                     QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
+//                                                     ui->qwt_fft->canvas() );
+    SAXYDataTracker *tracker = new SAXYDataTracker(ui->qwt_fft->canvas());
+    tracker->setRubberBandPen( QPen( Qt::red) );
     brush2.setStyle(Qt::Dense7Pattern);
     title.setText("Time Domain");
     ui->qwt_ch->setAxisTitle(2,"Voltage(V)");
@@ -317,6 +317,7 @@ void MainWindow::on_connectButton_clicked()
     ftp->connectToHost(ftpServer, FTP_PORT);
     ftp->login(userName,passWord);
     ui->statusBar->showMessage("和信号板建立FTP连接中...", 5000);
+    ftp->cd("/mnt/mmcblk0p1");
 }
 
 void MainWindow::addToList(const QUrlInfo &urlInfo)
@@ -637,6 +638,7 @@ void MainWindow::qwtPlotFft(int channel, double *rom, int NP)
     QVector<QPointF> vector;
     double current_fft_value;
 
+
     for (int i = 0; i < NP; i ++) {
         in1_c[i][0] = *(rom + i);
         in1_c[i][1] = 0;
@@ -726,6 +728,9 @@ void MainWindow::on_treeView_clicked(const QModelIndex &index)
 void MainWindow::on_pushButtonDraw_clicked()
 {
     QString dataFile = ui->lineEditLoadData->text();
+    if (dataFile.isEmpty()) {
+        return;
+    }
     QFile file(dataFile);
     QFileInfo fileInfo;
     quint64 dataLen;
@@ -817,8 +822,9 @@ void MainWindow::on_actionProfile_triggered()
 {
     int ret = 0;
     configDialog *dialog = new configDialog(this);
-    ret = dialog->set_config(&this->glabalConfig);
-    if (ret != true) {
+    dialog->setWindowTitle("配置窗口");
+    ret = dialog->set_config(&this->glabalConfig, this->socket);
+    if (ret != 0) {
         QMessageBox::critical(   this,
                                  tr("错误提示"),
                                  tr("与下位机TCP网络通信失败！"));
@@ -828,7 +834,6 @@ void MainWindow::on_actionProfile_triggered()
     dialog->setModal(false);
     dialog->show();
 }
-
 
 void MainWindow::on_radioButton5v_clicked(bool checked)
 {
@@ -852,4 +857,62 @@ void MainWindow::on_radioButton10v_clicked(bool checked)
     ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
     ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -12.1, 12.1);
     ui->qwt_ch->replot();
+}
+
+void MainWindow::on_actionstartSample_triggered(bool checked)
+{
+    if (checked) {
+        QByteArray cmd;
+        bool state;
+        cmd.append( (char)0x55 );
+        for (quint8 i = 0; i < 12; i ++) {
+            cmd.append((char)0);
+        }
+        state = this->socket->send_cmd_to_remote( (uint8_t*)cmd.data(), cmd.length());
+        if (!state) {
+            QMessageBox::critical(this, "错误提示", "网络数据校验失败，没有配置成功");
+            ui->statusBar->showMessage("启动失败！", 5000);
+            ui->actionstartSample->setChecked(false);
+        }else{
+            QMessageBox::information(this, "提示", "启动采样成功");
+            ui->statusBar->showMessage("启动成功！", 5000);
+            ui->actionstartSample->setChecked(true);
+        }
+    } else {
+        on_actionstopSample_triggered();
+    }
+}
+
+void MainWindow::on_actionstopSample_triggered()
+{
+    QByteArray cmd;
+    bool state;
+    cmd.append( (char)0x56 );
+    for (quint8 i = 0; i < 12; i ++) {
+        cmd.append((char)0);
+    }
+    state = this->socket->send_cmd_to_remote( (uint8_t*)cmd.data() , cmd.length());
+    if (!state) {
+        ui->statusBar->showMessage("关闭采样失败！", 5000);
+        QMessageBox::critical(this, "错误提示", "网络数据校验失败，没有配置成功");
+    }else{
+        ui->statusBar->showMessage("关闭采样成功！", 5000);
+        QMessageBox::information(this, "提示", "关闭采样成功！");
+        ui->actionstartSample->setChecked(false);
+    }
+}
+
+void MainWindow::on_actionlinkTcp_triggered()
+{
+    on_connectButton_clicked();
+}
+
+void MainWindow::on_actionDownloadFile_triggered()
+{
+    on_downloadButton_clicked();
+}
+
+void MainWindow::on_actionconfig_triggered()
+{
+    on_actionProfile_triggered();
 }

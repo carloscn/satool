@@ -45,7 +45,7 @@ public:
     QString tcp_target_ip;
     int     tcp_target_port;
     explicit configDialog(QWidget *parent = 0);
-    int set_config(CONFIG *cfg);
+    int set_config(CONFIG *cfg, NetClientThread *socket);
     ~configDialog();
     QString get_local_ip();
     uint8_t get_ip_array_form_QString(QString in,unsigned char *out);
