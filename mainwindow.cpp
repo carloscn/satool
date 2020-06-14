@@ -916,3 +916,8 @@ void MainWindow::on_actionconfig_triggered()
 {
     on_actionProfile_triggered();
 }
+
+void MainWindow::on_actionlinkTcp_2_triggered()
+{
+
+}
