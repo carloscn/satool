@@ -360,6 +360,13 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_merge_downloads">
+           <property name="text">
+            <string>合并下载</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
        <item>
