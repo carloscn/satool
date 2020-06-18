@@ -65,6 +65,7 @@
 #include "configdialog.h"
 #include <QVariant>
 #include <QSettings>
+#include <QtAlgorithms>
 
 class QFtp;
 class QFile;
@@ -93,6 +94,7 @@ private:
     QFile *merge_file;
     bool    merge_downloads;
     QString merge_downloads_files;
+    QStringList merge_downoads_files_list;
     QMenu *mServerMenu;
     QMenu *mClientMenu;
     int indexCount;
@@ -128,6 +130,7 @@ private:
     void qwtPlotWave( unsigned int , double* , unsigned long);
     void qwtPlotFft( int, double *, int);
     void drawData(int pos);
+    void get_ini_file_data();
 
 protected:
     void keyPressEvent(QKeyEvent *event);
