@@ -44,6 +44,7 @@ public:
     CONFIG *cfg;
     QString tcp_target_ip;
     int     tcp_target_port;
+    QTimer  *timer_update_current_time;
     explicit configDialog(QWidget *parent = 0);
     int set_config(CONFIG *cfg, NetClientThread *socket);
     ~configDialog();
@@ -54,6 +55,9 @@ public:
     quint8 hexstrToInt(QString str);
     QString arrayToHex(QByteArray array);
     quint8 hexstrToInt(QByteArray array);
+
+private slots:
+    void on_timer_update_current_time();
 
 private slots:
     void on_pushButton_set_to_server_clicked();
@@ -69,6 +73,7 @@ private slots:
     void on_pushButton_sample_clicked();
 
     void on_pushButton_close_sample_clicked();
+
 
 private:
     Ui::configDialog *ui;

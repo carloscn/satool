@@ -119,6 +119,13 @@ void configDialog::on_pushButton_set_to_server_clicked()
         memcpy(this->cfg, &backConfig, sizeof(CONFIG));
         QMessageBox::critical(this, "错误提示", "网络数据校验失败，没有配置成功");
     }else{
+        QSettings *configIniWrite = new QSettings("config.ini",QSettings::IniFormat);
+        configIniWrite->setValue("net/ip",ui->lineEdit_set_ip->text());
+        configIniWrite->setValue("net/mask",ui->lineEdit_set_mask->text());
+        configIniWrite->setValue("net/gate",ui->lineEdit_set_gate->text());
+        configIniWrite->setValue("net/port",ui->lineEdit_set_port->text());
+        configIniWrite->setValue("sample/rate",ui->lineEdit_freq->text());
+        delete configIniWrite;
         QMessageBox::information(this, "提示", "已写入IP配置，请重启板子和该软件，并输入正确IP");
     }
 }
@@ -151,6 +158,7 @@ void configDialog::on_pushButton_set_clear_clicked()
 int configDialog::set_config(CONFIG *cfg, NetClientThread *socket)
 {
     int ret = 0;
+
     this->tcp_target_ip = cfg->boardIp;
     this->tcp_target_port = cfg->tcpPort;
     this->net_socket = socket;
@@ -184,7 +192,34 @@ int configDialog::set_config(CONFIG *cfg, NetClientThread *socket)
         break;
     }
 
+    QDateTime curDateTime = QDateTime::currentDateTime();
+    ui->dateTimeEdit->sectionText(QDateTimeEdit::YearSection);
+    ui->dateTimeEdit->sectionText(QDateTimeEdit::MonthSection );
+    ui->dateTimeEdit->sectionText(QDateTimeEdit::DaySection );
+    ui->dateTimeEdit->sectionText(QDateTimeEdit::HourSection );
+    ui->dateTimeEdit->sectionText(QDateTimeEdit::MinuteSection  );
+    ui->dateTimeEdit->sectionText(QDateTimeEdit::SecondSection  );
+    ui->dateTimeEdit->setDateTime(curDateTime);
+
+    timer_update_current_time = new QTimer();
+    timer_update_current_time->setInterval(1000);
+    connect(timer_update_current_time, SIGNAL(timeout()),this,SLOT(on_timer_update_current_time()));
+    timer_update_current_time->start();
+
     return ret;
+}
+
+void configDialog::on_timer_update_current_time()
+{
+    //qDebug() << "update current time";
+    QDateTime curDateTime = QDateTime::currentDateTime();
+    ui->dateTimeEdit->sectionText(QDateTimeEdit::YearSection);
+    ui->dateTimeEdit->sectionText(QDateTimeEdit::MonthSection );
+    ui->dateTimeEdit->sectionText(QDateTimeEdit::DaySection );
+    ui->dateTimeEdit->sectionText(QDateTimeEdit::HourSection );
+    ui->dateTimeEdit->sectionText(QDateTimeEdit::MinuteSection  );
+    ui->dateTimeEdit->sectionText(QDateTimeEdit::SecondSection  );
+    ui->dateTimeEdit->setDateTime(curDateTime);
 }
 
 void configDialog::on_pushButton_set_to_time_clicked()
