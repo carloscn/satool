@@ -14,7 +14,13 @@ WIN_FFTW_DIR=..\SATOOL\lib\libfftw\fftw-mingw32\b32
 ARM_QWT_DIR=./SATOOL/lib/libqwt/qwt-arch64-6.1.3
 ARM_FFTW_DIR=./SATOOL/lib/libfftw/fftw-arch64
 # add file: qwt.dll file: libfftw3f-3.dll to *.exe path
+# set export value in : project->
+# DYLD_FRAMEWORK_PATH /Users/carlos/work/out/qwt6.1.3/lib
 
+MAC_QWT_DIR=../SATOOL/lib/libqwt/qwt-macos
+MAC_FFTW_DIR=../SATOOL/lib/libfftw/fftw-macos
+macx:QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.09
+macx:QMAKE_MAC_SDK=macosx10.09
 QT          += core gui sql xml widgets printsupport
 QT          += network
 QT          += ftp
@@ -72,6 +78,15 @@ linux-g++ {
     INCLUDEPATH += $${LINUX_FFTW_DIR}/include
     LIBS += -L"$${LINUX_QWT_DIR}/lib/" -lqwt
     LIBS += $${LINUX_FFTW_DIR}/lib/libfftw3f.a
+}
+
+macx-clang {
+include($${MAC_QWT_DIR}/features/qwt.prf)
+    INCLUDEPATH += $${MAC_QWT_DIR}/lib/qwt.framework/Headers
+    INCLUDEPATH += $${MAC_FFTW_DIR}/include
+    LIBS += -F"$${MAC_QWT_DIR}/lib/qwt.framework"
+    LIBS += "$${MAC_FFTW_DIR}/lib/libfftw3f.a"
+    #LIBS += -framework qwt
 }
 
 RESOURCES += \

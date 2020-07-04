@@ -53,35 +53,85 @@ MainWindow::MainWindow(QWidget *parent) :
     this->initDisplay();
     this->showLocalFile();
     dataRomPointer = NULL;
+    merge_downloads = false;
+
+    this->get_ini_file_data();
+
     this->initQwt();
     this->glabalConfig.boardIp = ui->ftpServerLineEdit->text();
     this->glabalConfig.ftpPort = FTP_PORT;
-    this->glabalConfig.tcpPort = TCP_PORT;
-    this->glabalConfig.sampleRateKhz = 10;
-    this->glabalConfig.mask = "255.255.255.0";
-    this->glabalConfig.gate = "192.168.1.1";
+    //    this->glabalConfig.tcpPort = TCP_PORT;
+    //    this->glabalConfig.sampleRateKhz = 10;
+    //    this->glabalConfig.mask = "255.255.255.0";
+    //    this->glabalConfig.gate = "192.168.1.1";
     this->glabalConfig.gainFirst = 1;
     this->glabalConfig.gainSecond = 1;
     this->voltageGroup = new QButtonGroup(this);
     this->voltageGroup->addButton( ui->radioButton5v );
     this->voltageGroup->addButton( ui->radioButton10v );
-    ui->radioButton5v->setChecked(false);
-    this->voltage5v = false;
+    if(this->voltage5v == false)
+        ui->radioButton5v->setChecked(false);
+    else
+        ui->radioButton5v->setChecked(true);
+
     this->isFileAutoLoad = ui->checkBox_autoload->isChecked();
     this->socket = new NetClientThread(this->glabalConfig.boardIp, this->glabalConfig.tcpPort);
     //this->on_radioButton10v_clicked(true);
     connect(ui->treeView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showLocalTreeViewMenu(QPoint)));
     ret = this->socket->set_connect(this->glabalConfig.boardIp, this->glabalConfig.tcpPort);
     if (ret != true) {
-        QMessageBox::critical(this, "错误", "与下位机TCP通信失败，请检查与板子网络连接！");
+        //QMessageBox::critical(this, "错误", "与下位机TCP通信失败，请检查与板子网络连接！");
     }
     ui->statusBar->showMessage("与板子TCP通信成功", 5000);
 }
+
 MainWindow::~MainWindow()
 {
     delete ui;
 }
 
+void MainWindow::get_ini_file_data()
+{
+    QFileInfo file("config.ini");
+    if(file.exists() == false)
+    {
+        qDebug() << "不存在配置文件";
+
+        QSettings *configIniWrite = new QSettings("config.ini",QSettings::IniFormat);
+        configIniWrite->setValue("net/ip","192.168.1.10");
+        configIniWrite->setValue("net/mask","255.255.255.0");
+        configIniWrite->setValue("net/gate","192.168.1.1");
+        configIniWrite->setValue("net/port","5000");
+        configIniWrite->setValue("sample/rate","10");
+        configIniWrite->setValue("voltage/range","5V");
+        delete configIniWrite;
+    }
+
+    QSettings *configIniRead = new QSettings("config.ini",QSettings::IniFormat);
+    if(configIniRead->value("net/ip").isNull() == true)
+        configIniRead->setValue("net/ip","192.168.1.10");
+    ui->ftpServerLineEdit->setText( configIniRead->value("net/ip").toString() );
+    if(configIniRead->value("net/mask").isNull() == true)
+        configIniRead->setValue("net/mask","255.255.255.0");
+    this->glabalConfig.mask = configIniRead->value("net/mask").toString();
+    if(configIniRead->value("net/gate").isNull() == true)
+        configIniRead->setValue("net/gate","192.168.1.1");
+    this->glabalConfig.gate = configIniRead->value("net/gate").toString();
+    if(configIniRead->value("net/port").isNull() == true)
+        configIniRead->setValue("net/port","5000");
+    this->glabalConfig.tcpPort = configIniRead->value("net/port").toULongLong();
+    if(configIniRead->value("sample/rate").isNull() == true)
+        configIniRead->setValue("sample/rate","10");
+    this->glabalConfig.sampleRateKhz = configIniRead->value("sample/rate").toUInt();
+    if(configIniRead->value("voltage/range").isNull() == true)
+        configIniRead->setValue("voltage/range","5V");
+    if(configIniRead->value("voltage/range").toString() == "5V"){
+        this->voltage5v = true;
+        qDebug() << "5V";
+    }else
+        this->voltage5v = false;
+    delete configIniRead;
+}
 
 void MainWindow::initQwt()
 {
@@ -96,9 +146,9 @@ void MainWindow::initQwt()
     QwtPlotPicker *m_picker_ch = new QwtPlotPicker( QwtPlot::xBottom, QwtPlot::yLeft,
                                                     QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
                                                     ui->qwt_ch->canvas() );
-//    QwtPlotPicker *m_picker_fft = new QwtPlotPicker( QwtPlot::xBottom, QwtPlot::yLeft,
-//                                                     QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
-//                                                     ui->qwt_fft->canvas() );
+    //    QwtPlotPicker *m_picker_fft = new QwtPlotPicker( QwtPlot::xBottom, QwtPlot::yLeft,
+    //                                                     QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
+    //                                                     ui->qwt_fft->canvas() );
     SAXYDataTracker *tracker = new SAXYDataTracker(ui->qwt_fft->canvas());
     tracker->setRubberBandPen( QPen( Qt::red) );
     brush2.setStyle(Qt::Dense7Pattern);
@@ -112,6 +162,15 @@ void MainWindow::initQwt()
     ui->qwt_fft->insertLegend(new QwtLegend(), QwtPlot::TopLegend);
     ui->qwt_ch->setStyleSheet("background-color:rgb(255,255,255)");
     ui->qwt_fft->setStyleSheet("background-color:rgb(255,255,255)");
+    if(this->voltage5v == false)
+    {
+        ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
+        ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -12.1, 12.1);
+    } else {
+        ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
+        ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -6.1, 6.1);
+    }
+
     this->qwtCurve1Ch1 = new QwtPlotCurve("Channel1");
     this->qwtCurve1Ch2 = new QwtPlotCurve("Channel2");
     this->qwtCurve1Ch3 = new QwtPlotCurve("Channel3");
@@ -229,6 +288,43 @@ void MainWindow::ftpCommandFinished(int, bool error)
                 qDebug() << "auto load: " << this->hookFileAddr;
             }
             currentIndex ++;
+
+            if(merge_downloads == true && currentIndex == indexCount){
+                qDebug() << "开始合并";
+                qDebug() << merge_downoads_files_list;
+                qSort(merge_downoads_files_list.begin(),merge_downoads_files_list.end());//按照升序进行排序
+                qDebug() << merge_downoads_files_list;
+                //新建一个新的文件名，格式为: 选中的第一个文件名 + _merge.txt
+                //qDebug() << "merge_downloads_files: " << merge_downloads_files;
+                QString new_merge_file = merge_downoads_files_list.at(0) + "_merge.txt";
+                this->hookFileAddr = new_merge_file;
+                qDebug() << "new_merge_file: " << new_merge_file;
+                ui->lineEditLoadData->setText(this->hookFileAddr);
+                QFile file( new_merge_file );
+                if (file.open(QIODevice::ReadWrite) == true)
+                {
+                    QString current_merge_file;
+                    QByteArray read_data;
+                    QDataStream out(&file);
+                    for(int i = 0; i < indexCount; i++)
+                    {
+                        current_merge_file = merge_downoads_files_list.at(i) + ".txt";
+                        qDebug() << current_merge_file;
+                        QFile current_file(current_merge_file);
+                        if(current_file.open(QIODevice::ReadWrite) == true)
+                        {
+                            read_data = current_file.readAll();
+                            qDebug() << read_data.length();
+                            file.write(read_data);
+                            current_file.close();
+                        }
+                    }
+                    file.flush();
+                    file.close();
+                }
+                merge_downloads = false;
+            }
+
             if(currentIndex < indexCount){
                 this->downloadFtpFile(currentIndex);
             }
@@ -317,7 +413,8 @@ void MainWindow::on_connectButton_clicked()
     ftp->connectToHost(ftpServer, FTP_PORT);
     ftp->login(userName,passWord);
     ui->statusBar->showMessage("和信号板建立FTP连接中...", 5000);
-    ftp->cd("/mnt/mmcblk0p1");
+    ftp->cd("/");
+    //ftp->cd("/mnt/mmcblk0p1");
 }
 
 void MainWindow::addToList(const QUrlInfo &urlInfo)
@@ -329,6 +426,9 @@ void MainWindow::addToList(const QUrlInfo &urlInfo)
     item->setText(0, _FromSpecialEncoding(urlInfo.name()));
     double  dFileSize = ((int)(urlInfo.size()/1024.0*100))/100.0;
     QString fileSize = QString::number(dFileSize,'g',10)+"KB";
+    qDebug() << "fileSize: " << fileSize;
+    if(fileSize == "0KB")
+        return;
     item->setText(1, fileSize);
     item->setText(2, urlInfo.lastModified().toString("MMM dd yyyy"));
     item->setText(3, urlInfo.owner());
@@ -377,6 +477,15 @@ void MainWindow::on_cdToParentButton_clicked()
     ftp->list();
 }
 
+//合并下载
+void MainWindow::on_pushButton_merge_downloads_clicked()
+{
+    merge_downloads = true;
+    merge_downloads_files.clear();
+    merge_downoads_files_list.clear();
+    on_downloadButton_clicked();
+}
+
 // 下载按钮
 void MainWindow::on_downloadButton_clicked()
 {
@@ -391,6 +500,7 @@ void MainWindow::on_downloadButton_clicked()
     if (indexCount <= 0) {
         return;
     }
+    qDebug() << "indexCount:" << indexCount;
     ui->downloadButton->setEnabled(false);
     currentIndex = 0;
     this->downloadFtpFile(currentIndex);
@@ -418,7 +528,14 @@ void MainWindow::downloadFtpFile(int rowIndex)
     ui->statusBar->showMessage("ftp busy...");
     this->hookFileAddr = fileName;
     qDebug() << "hook name is :" << this->hookFileAddr;
-    ftp->get(_ToSpecialEncoding(indexList.at(rowIndex).data().toString()), file);
+    qDebug() << ftp->get(_ToSpecialEncoding(indexList.at(rowIndex).data().toString()), file);
+    //加入合并下载
+    if(merge_downloads == true)
+    {
+        merge_downoads_files_list.append(fileName.replace(QString(".txt"),QString("")));
+        merge_downloads_files.append(fileName.replace(QString(".txt"),QString("")));
+        merge_downloads_files.append(",");
+    }
 }
 
 void MainWindow::updateDataTransferProgress(qint64 readBytes,qint64 totalBytes)
@@ -759,19 +876,12 @@ void MainWindow::on_pushButtonDraw_clicked()
     }
     for(quint64 i = 0; i < dataLen; i ++) {
         dataTemp = 0;
-        if (i == 0) {
-            dataLow = fileData.at(0)&0xFF;
-            dataHigh = fileData.at(1)&0xFF;
-            dataTemp = dataLow;
-            dataTemp = (dataTemp << 8) & 0xFF00;
-            dataTemp |= dataHigh;
-        }else{
-            dataLow = fileData.at(2*i-1);
-            dataHigh = fileData.at(2*i);
-            dataTemp = dataLow;
-            dataTemp = (dataTemp << 8) & 0xFF00;
-            dataTemp |= dataHigh;
-        }
+
+        dataLow = fileData.at(2*i);
+        dataHigh = fileData.at(2*i+1);
+        dataTemp = dataLow;
+        dataTemp |= dataHigh << 8;
+
         dataTempDouble = dataTemp * 1.0;
         dataRom[i] = dataTempDouble / 32768.0 * A;
     }
@@ -842,6 +952,9 @@ void MainWindow::on_radioButton5v_clicked(bool checked)
         qDebug() << "current set 5V";
     else
         qDebug() << "current set 10V";
+    QSettings *configIniWrite = new QSettings("config.ini",QSettings::IniFormat);
+    configIniWrite->setValue("voltage/range","5V");
+    delete configIniWrite;
     ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
     ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -6.1, 6.1);
     ui->qwt_ch->replot();
@@ -854,6 +967,9 @@ void MainWindow::on_radioButton10v_clicked(bool checked)
         qDebug() << "current set 5V";
     else
         qDebug() << "current set 10V";
+    QSettings *configIniWrite = new QSettings("config.ini",QSettings::IniFormat);
+    configIniWrite->setValue("voltage/range","10V");
+    delete configIniWrite;
     ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
     ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -12.1, 12.1);
     ui->qwt_ch->replot();
@@ -916,3 +1032,4 @@ void MainWindow::on_actionconfig_triggered()
 {
     on_actionProfile_triggered();
 }
+

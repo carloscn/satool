@@ -31,6 +31,7 @@
 #include <QDirModel>
 #include <QTreeView>
 #include <QFile>
+#include <QFileInfo>
 #include <QMenu>
 #include <QAction>
 #include <QInputDialog>
@@ -62,6 +63,10 @@
 #include "saxydatatracker.h"
 #include "config.h"
 #include "configdialog.h"
+#include <QVariant>
+#include <QSettings>
+#include <QtAlgorithms>
+
 class QFtp;
 class QFile;
 class QUrlInfo;
@@ -86,6 +91,10 @@ private:
     QString currentPath;
     QDirModel *dirModel;
     QFile *file;
+    QFile *merge_file;
+    bool    merge_downloads;
+    QString merge_downloads_files;
+    QStringList merge_downoads_files_list;
     QMenu *mServerMenu;
     QMenu *mClientMenu;
     int indexCount;
@@ -121,6 +130,7 @@ private:
     void qwtPlotWave( unsigned int , double* , unsigned long);
     void qwtPlotFft( int, double *, int);
     void drawData(int pos);
+    void get_ini_file_data();
 
 protected:
     void keyPressEvent(QKeyEvent *event);
@@ -158,6 +168,7 @@ private slots:
     void on_actionlinkTcp_triggered();
     void on_actionDownloadFile_triggered();
     void on_actionconfig_triggered();
+    void on_pushButton_merge_downloads_clicked();
 };
 
 #endif // MAINWINDOW_H
