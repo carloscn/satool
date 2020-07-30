@@ -66,6 +66,7 @@
 #include <QVariant>
 #include <QSettings>
 #include <QtAlgorithms>
+#include <QNetworkProxy>
 
 class QFtp;
 class QFile;
@@ -169,6 +170,7 @@ private slots:
     void on_actionDownloadFile_triggered();
     void on_actionconfig_triggered();
     void on_pushButton_merge_downloads_clicked();
+    void on_actionlinkTcp_2_triggered();
 };
 
 #endif // MAINWINDOW_H

@@ -216,6 +216,21 @@ void MainWindow::initQwt()
     gridCh->attach(ui->qwt_ch);
     gridFft->attach(ui->qwt_fft);
 
+    //配置缩放
+    // 滚轮缩放
+    QwtPlotMagnifier *magnifier = new QwtPlotMagnifier(ui->qwt_ch->canvas());
+    //magnifier->setAxisEnabled(QwtPlot::yRight,false);
+    // 点击左键移动画布
+    QwtPlotPanner *panner = new QwtPlotPanner(ui->qwt_ch->canvas());
+    //panner->setAxisEnabled(QwtPlot::yRight,true);
+    // 点击右键恢复默认坐标范围
+    QwtPlotZoomer* zoomer = new QwtPlotZoomer(ui->qwt_ch->canvas() );
+    zoomer->setRubberBandPen( QColor( Qt::black ) );
+    zoomer->setTrackerPen( QColor( Qt::black ) );
+    zoomer->setMousePattern(QwtEventPattern::MouseSelect1,Qt::LeftButton, Qt::ControlModifier );
+    //zoomer->setMousePattern(QwtEventPattern::MouseSelect3,Qt::RightButton );
+
+
 }
 
 void MainWindow::initDisplay()
@@ -410,6 +425,7 @@ void MainWindow::on_connectButton_clicked()
     QString ftpServer = ui->ftpServerLineEdit->text();
     QString userName = "root";
     QString passWord = "";
+    QNetworkProxy::setApplicationProxy(QNetworkProxy::NoProxy);
     ftp->connectToHost(ftpServer, FTP_PORT);
     ftp->login(userName,passWord);
     ui->statusBar->showMessage("和信号板建立FTP连接中...", 5000);
@@ -933,6 +949,7 @@ void MainWindow::on_actionProfile_triggered()
     int ret = 0;
     configDialog *dialog = new configDialog(this);
     dialog->setWindowTitle("配置窗口");
+    this->get_ini_file_data();
     ret = dialog->set_config(&this->glabalConfig, this->socket);
     if (ret != 0) {
         QMessageBox::critical(   this,
@@ -941,6 +958,7 @@ void MainWindow::on_actionProfile_triggered()
         delete dialog;
         return;
     }
+
     dialog->setModal(false);
     dialog->show();
 }
@@ -1020,6 +1038,7 @@ void MainWindow::on_actionstopSample_triggered()
 
 void MainWindow::on_actionlinkTcp_triggered()
 {
+    qDebug() << "hello";
     on_connectButton_clicked();
 }
 
@@ -1033,3 +1052,8 @@ void MainWindow::on_actionconfig_triggered()
     on_actionProfile_triggered();
 }
 
+
+void MainWindow::on_actionlinkTcp_2_triggered()
+{
+    on_connectButton_clicked();
+}

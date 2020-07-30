@@ -106,7 +106,7 @@ bool NetClientThread::send_cmd_to_remote(uint8_t *users, quint16 length)
     cmd.append(0xE9);
     socket->write(cmd);
     socket->flush();
-    qDebug() << "cmd socket series number: ( " << cmd << " )";
+    qDebug() << "cmd socket series number: ( " << cmd << "\"" << "length" << cmd.length() << ")";
     socket->waitForReadyRead(300);
     for (quint64 i = 0; i < cmd.length(); i ++) {
         if (cmd.at(i) != recv_bytes.at(i)) {
