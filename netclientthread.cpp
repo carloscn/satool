@@ -102,8 +102,8 @@ bool NetClientThread::send_cmd_to_remote(uint8_t *users, quint16 length)
     cmd.append(CMD_HEADER_1);
     for (int i = 0; i < length; i ++)
         cmd.append(users[i]);
-    qDebug() << "send :" << cmd;
     cmd.append(0xE9);
+    qDebug() << "send :" << cmd << "  length: " << cmd.length();
     socket->write(cmd);
     socket->flush();
     qDebug() << "cmd socket series number: ( " << cmd << "\"" << "length" << cmd.length() << ")";
