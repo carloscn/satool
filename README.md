@@ -2,6 +2,14 @@
 
 SATOOL是一款基于TCP和FTP协议的数据传输和分析工具性软件，通过TCP网络协议与基于OMAPL138为核心的数据采集记录板（以下简称：OMAP内记仪）进行配置；通过FTP数据传输协议与OMAP内记仪进行采样数据交换，实现与OMAP内记仪的配置和下载的双向数据流通。
 
+## 0 代码下载
+
+下载代码：`git clone https://github.com/carloscn/satool.git`
+
+加载子模块： `git submodule init`
+
+下载依赖库：`git submodule update`
+
 ## 1 硬件使用要求
 
 在硬件上面关键是对于网络和电源的配置。请关注以下网络配置功能，**同时对于电源请使用+12V/2A的直流电源进行稳定持续性供电**。
