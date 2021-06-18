@@ -52,7 +52,10 @@ MainWindow::MainWindow(QWidget *parent) :
     this->isFileAutoLoad = ui->checkBox_autoload->isChecked();
     this->initDisplay();
     this->showLocalFile();
-    dataRomPointer = NULL;
+    dataRomPointerCh0 = NULL;
+    dataRomPointerCh1 = NULL;
+    dataRomPointerCh2 = NULL;
+    dataRomPointerCh3 = NULL;
     merge_downloads = false;
 
     this->get_ini_file_data();
@@ -131,6 +134,15 @@ void MainWindow::get_ini_file_data()
     }else
         this->voltage5v = false;
     delete configIniRead;
+
+    ui->checkBoxChannel0->setEnabled(true);
+    ui->checkBoxChannel1->setEnabled(true);
+    ui->checkBoxChannel2->setEnabled(true);
+    ui->checkBoxChannel3->setEnabled(true);
+    ui->checkBoxChannel0->setChecked(true);
+    ui->checkBoxChannel1->setChecked(false);
+    ui->checkBoxChannel2->setChecked(false);
+    ui->checkBoxChannel3->setChecked(false);
 }
 
 void MainWindow::initQwt()
@@ -138,20 +150,29 @@ void MainWindow::initQwt()
     QwtText title;
     QFont font;
     double sinTable[1024];
-    QBrush brush2(QColor(128,128,128));
-    QPen ch1Pen(Qt::green, 3, Qt::DashDotLine, Qt::RoundCap, Qt::RoundJoin);
+    QBrush brush1(QColor(92,184,92));
+    QBrush brush2(QColor(91,192,222));
+    QBrush brush3(QColor(240,173,78));
+    QBrush brush4(QColor(217,83,79));
+    QPen ch1Pen(QColor(92,184,92), 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+    QPen ch2Pen(QColor(91,192,222), 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+    QPen ch3Pen(QColor(240,173,78), 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+    QPen ch4Pen(QColor(217,83,79), 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
     QwtPlotGrid* gridCh = new QwtPlotGrid();
     QwtPlotGrid* gridFft = new QwtPlotGrid();
 
     QwtPlotPicker *m_picker_ch = new QwtPlotPicker( QwtPlot::xBottom, QwtPlot::yLeft,
                                                     QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
                                                     ui->qwt_ch->canvas() );
-    //    QwtPlotPicker *m_picker_fft = new QwtPlotPicker( QwtPlot::xBottom, QwtPlot::yLeft,
-    //                                                     QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
-    //                                                     ui->qwt_fft->canvas() );
+    QwtPlotPicker *m_picker_fft = new QwtPlotPicker( QwtPlot::xBottom, QwtPlot::yLeft,
+                                                     QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
+                                                     ui->qwt_fft->canvas() );
     SAXYDataTracker *tracker = new SAXYDataTracker(ui->qwt_fft->canvas());
     tracker->setRubberBandPen( QPen( Qt::red) );
+    brush1.setStyle(Qt::Dense7Pattern);
     brush2.setStyle(Qt::Dense7Pattern);
+    brush3.setStyle(Qt::Dense7Pattern);
+    brush4.setStyle(Qt::Dense7Pattern);
     title.setText("Time Domain");
     ui->qwt_ch->setAxisTitle(2,"Voltage(V)");
     ui->qwt_ch->setTitle(title);
@@ -179,22 +200,22 @@ void MainWindow::initQwt()
     this->qwtCurve1Ch2Fft = new QwtPlotCurve("CH2 FFT");
     this->qwtCurve1Ch3Fft = new QwtPlotCurve("CH3 FFT");
     this->qwtCurve1Ch4Fft = new QwtPlotCurve("CH4 FFT");
-    this->qwtCurve1Ch4->setPen(ch1Pen);
-    this->qwtCurve1Ch4Fft->setPen(ch1Pen);
-    this->qwtCurve1Ch2->setPen(QColor(241,196,86),2.5,Qt::SolidLine);
-    this->qwtCurve1Ch2Fft->setPen(QColor(241,196,86),2.5,Qt::SolidLine);
-    this->qwtCurve1Ch3->setPen(QColor(50,141,202),2.5,Qt::SolidLine);
-    this->qwtCurve1Ch3Fft->setPen(QColor(50,141,202),2.5,Qt::SolidLine);
-    this->qwtCurve1Ch1->setPen(QColor(220,95,47),2.5,Qt::SolidLine);
-    this->qwtCurve1Ch1Fft->setPen(QColor(220,95,47),2.5,Qt::SolidLine);
-    this->qwtCurve1Ch1->setBrush(brush2);
+    this->qwtCurve1Ch1->setPen(ch1Pen);
+    this->qwtCurve1Ch1Fft->setPen(ch1Pen);
+    this->qwtCurve1Ch2->setPen(ch2Pen);
+    this->qwtCurve1Ch2Fft->setPen(ch2Pen);
+    this->qwtCurve1Ch3->setPen(ch3Pen);
+    this->qwtCurve1Ch3Fft->setPen(ch3Pen);
+    this->qwtCurve1Ch4->setPen(ch4Pen);
+    this->qwtCurve1Ch4Fft->setPen(ch4Pen);
+    this->qwtCurve1Ch1->setBrush(brush1);
     this->qwtCurve1Ch2->setBrush(brush2);
-    this->qwtCurve1Ch3->setBrush(brush2);
-    this->qwtCurve1Ch4->setBrush(brush2);
-    this->qwtCurve1Ch1Fft->setBrush(brush2);
+    this->qwtCurve1Ch3->setBrush(brush3);
+    this->qwtCurve1Ch4->setBrush(brush4);
+    this->qwtCurve1Ch1Fft->setBrush(brush1);
     this->qwtCurve1Ch2Fft->setBrush(brush2);
-    this->qwtCurve1Ch3Fft->setBrush(brush2);
-    this->qwtCurve1Ch4Fft->setBrush(brush2);
+    this->qwtCurve1Ch3Fft->setBrush(brush3);
+    this->qwtCurve1Ch4Fft->setBrush(brush4);
     this->qwtCurve1Ch1->setCurveAttribute(QwtPlotCurve::Fitted, true);
     this->qwtCurve1Ch2->setCurveAttribute(QwtPlotCurve::Fitted, true);
     this->qwtCurve1Ch3->setCurveAttribute(QwtPlotCurve::Fitted, true);
@@ -203,6 +224,14 @@ void MainWindow::initQwt()
     this->qwtCurve1Ch2Fft->setCurveAttribute(QwtPlotCurve::Fitted, true);
     this->qwtCurve1Ch3Fft->setCurveAttribute(QwtPlotCurve::Fitted, true);
     this->qwtCurve1Ch4Fft->setCurveAttribute(QwtPlotCurve::Fitted, true);
+    this->qwtCurve1Ch1->setLegendAttribute(this->qwtCurve1Ch1->LegendShowLine);
+    this->qwtCurve1Ch2->setLegendAttribute(this->qwtCurve1Ch1->LegendShowLine);
+    this->qwtCurve1Ch3->setLegendAttribute(this->qwtCurve1Ch1->LegendShowLine);
+    this->qwtCurve1Ch4->setLegendAttribute(this->qwtCurve1Ch1->LegendShowLine);
+    this->qwtCurve1Ch1Fft->setLegendAttribute(this->qwtCurve1Ch1Fft->LegendShowLine);
+    this->qwtCurve1Ch2Fft->setLegendAttribute(this->qwtCurve1Ch2Fft->LegendShowLine);
+    this->qwtCurve1Ch3Fft->setLegendAttribute(this->qwtCurve1Ch3Fft->LegendShowLine);
+    this->qwtCurve1Ch4Fft->setLegendAttribute(this->qwtCurve1Ch4Fft->LegendShowLine);
     this->qwtCurve1Ch1->attach(ui->qwt_ch);
     this->qwtCurve1Ch2->attach(ui->qwt_ch);
     this->qwtCurve1Ch3->attach(ui->qwt_ch);
@@ -504,9 +533,21 @@ void MainWindow::on_downloadButton_clicked()
     ui->downloadButton->setEnabled(false);
     currentIndex = 0;
     this->downloadFtpFile(currentIndex);
-    if (this->dataRomPointer != NULL) {
-        delete(this->dataRomPointer);
-        this->dataRomPointer = NULL;
+    if (this->dataRomPointerCh0 != NULL) {
+        delete(this->dataRomPointerCh0);
+        this->dataRomPointerCh0 = NULL;
+    }
+    if (this->dataRomPointerCh1 != NULL) {
+        delete(this->dataRomPointerCh1);
+        this->dataRomPointerCh1 = NULL;
+    }
+    if (this->dataRomPointerCh2 != NULL) {
+        delete(this->dataRomPointerCh2);
+        this->dataRomPointerCh2 = NULL;
+    }
+    if (this->dataRomPointerCh3 != NULL) {
+        delete(this->dataRomPointerCh3);
+        this->dataRomPointerCh3 = NULL;
     }
 }
 void MainWindow::downloadFtpFile(int rowIndex)
@@ -789,10 +830,8 @@ void MainWindow::qwtPlotFft(int channel, double *rom, int NP)
     } else if (channel == CHANNEL_3) {
         qwtCurve1Ch4Fft->setData(series);
     }
-    ui->qwt_fft->replot();
-    ui->qwt_fft->show();
-
 }
+
 void MainWindow::qwtPlotWave(unsigned int channel, double *data, unsigned long length)
 {
 
@@ -822,11 +861,29 @@ void MainWindow::qwtPlotWave(unsigned int channel, double *data, unsigned long l
         break;
 
     default:
-
         break;
     }
+}
+void MainWindow::qwtCleanChannel()
+{
+    double a = 0,b = 0;
+    qwtCurve1Ch1->setSamples(&a,&b,1);
+    qwtCurve1Ch2->setSamples(&a,&b,1);
+    qwtCurve1Ch3->setSamples(&a,&b,1);
+    qwtCurve1Ch4->setSamples(&a,&b,1);
+    qwtCurve1Ch1Fft->setSamples(&a,&b,1);
+    qwtCurve1Ch2Fft->setSamples(&a,&b,1);
+    qwtCurve1Ch3Fft->setSamples(&a,&b,1);
+    qwtCurve1Ch4Fft->setSamples(&a,&b,1);
+    ui->qwt_ch->replot();
+    ui->qwt_fft->replot();
+}
+void MainWindow::qwtShow()
+{
     ui->qwt_ch->replot();
     ui->qwt_ch->show();
+    ui->qwt_fft->replot();
+    ui->qwt_fft->show();
 }
 
 void MainWindow::on_checkBox_autoload_clicked(bool checked)
@@ -860,35 +917,79 @@ void MainWindow::on_pushButtonDraw_clicked()
     fileData.clear();
     fileData = file.read(dataLen);
     file.close();
-    dataLen = dataLen/2;
-    qint16 dataTemp = 0;
-    double dataTempDouble = 0.0;
-    quint8 dataLow,dataHigh;
-    int range = dataLen / ui->spinBoxBlockSize->value() - 1;
-    ui->spinBox->setRange(0,range);
-    ui->horizontalSlider_do->setRange(0, range);
-    this->dataRange = range;
-    double *dataRom = new double[dataLen + 1];
-    if (this->voltage5v == true) {
-        A = 5.0f;
-    }else {
-        A = 10.0f;
+    /* Logic of dealing single channel data */
+    if (dataFile.contains(".txt")) {
+        dataLen = dataLen/2;
+        qint16 dataTemp = 0;
+        double dataTempDouble = 0.0;
+        quint8 dataLow,dataHigh;
+        int range = dataLen / ui->spinBoxBlockSize->value() - 1;
+        ui->spinBox->setRange(0,range);
+        ui->horizontalSlider_do->setRange(0, range);
+        this->dataRange = range;
+        double *dataRom = new double[dataLen + 1];
+        if (this->voltage5v == true) {
+            A = 5.0f;
+        }else {
+            A = 10.0f;
+        }
+        for(quint64 i = 0; i < dataLen; i ++) {
+            dataTemp = 0;
+
+            dataLow = fileData.at(2*i);
+            dataHigh = fileData.at(2*i+1);
+            dataTemp = dataLow;
+            dataTemp |= dataHigh << 8;
+
+            dataTempDouble = dataTemp * 1.0;
+            dataRom[i] = dataTempDouble / 32768.0 * A;
+        }
+
+        this->dataRomPointerCh0 = dataRom;
+        ui->spinBoxBlockSize->setEnabled(false);
+        on_spinBox_valueChanged(0);
+    /* Logic of dealing with four channels data */
+    } else if (dataFile.contains(".hex")) {
+        quint32 j = 0;
+        dataLen = dataLen/8;
+        qint16 dataTemp[4];
+        double dataTempDouble[4];
+        quint8 dataLow[4],dataHigh[4];
+        int range = dataLen / ui->spinBoxBlockSize->value() - 1;
+        ui->spinBox->setRange(0,range);
+        ui->horizontalSlider_do->setRange(0, range);
+        this->dataRange = range;
+        double *dataRom1 = new double[dataLen + 1];
+        double *dataRom2 = new double[dataLen + 1];
+        double *dataRom3 = new double[dataLen + 1];
+        double *dataRom4 = new double[dataLen + 1];
+        if (this->voltage5v == true) {
+            A = 5.0f;
+        }else {
+            A = 10.0f;
+        }
+        for(quint64 i = 0; i < dataLen; i ++) {
+            memset(dataTemp, 0, 4);
+            for (j = 0; j < 4; j ++) {
+                dataLow[j] = fileData.at(8*i + 2*j);
+                dataHigh[j] = fileData.at(8*i + 2*j + 1);
+                dataTemp[j] = dataHigh[j];
+                dataTemp[j] |= dataLow[j] << 8;
+                dataTempDouble[j] = dataTemp[j] * 1.0;
+            }
+            dataRom1[i] = dataTempDouble[0] / 32768.0 * A;
+            dataRom2[i] = dataTempDouble[1] / 32768.0 * A;
+            dataRom3[i] = dataTempDouble[2] / 32768.0 * A;
+            dataRom4[i] = dataTempDouble[3] / 32768.0 * A;
+        }
+
+        this->dataRomPointerCh0 = dataRom1;
+        this->dataRomPointerCh1 = dataRom2;
+        this->dataRomPointerCh2 = dataRom3;
+        this->dataRomPointerCh3 = dataRom4;
+        ui->spinBoxBlockSize->setEnabled(false);
+        on_spinBox_valueChanged(0);
     }
-    for(quint64 i = 0; i < dataLen; i ++) {
-        dataTemp = 0;
-
-        dataLow = fileData.at(2*i);
-        dataHigh = fileData.at(2*i+1);
-        dataTemp = dataLow;
-        dataTemp |= dataHigh << 8;
-
-        dataTempDouble = dataTemp * 1.0;
-        dataRom[i] = dataTempDouble / 32768.0 * A;
-    }
-
-    this->dataRomPointer = dataRom;
-    ui->spinBoxBlockSize->setEnabled(false);
-    on_spinBox_valueChanged(0);
 }
 
 
@@ -906,8 +1007,32 @@ void MainWindow::on_spinBox_valueChanged(int arg1)
 
 void MainWindow::drawData(int pos)
 {
-    qwtPlotWave(CHANNEL_0, (double*)(&dataRomPointer[ui->spinBoxBlockSize->value()*pos] ), ui->spinBoxBlockSize->value());
-    qwtPlotFft(CHANNEL_0, (double*)(&dataRomPointer[ui->spinBoxBlockSize->value()*pos]), ui->spinBoxBlockSize->value());
+    int seg = 0;
+    qwtCleanChannel();
+    if (ui->checkBoxChannel0->isChecked() && dataRomPointerCh0 != NULL) {
+        qwtPlotWave(CHANNEL_0, (double*)(&dataRomPointerCh0[ui->spinBoxBlockSize->value()*pos] ), ui->spinBoxBlockSize->value());
+        qwtPlotFft(CHANNEL_0, (double*)(&dataRomPointerCh0[ui->spinBoxBlockSize->value()*pos]), ui->spinBoxBlockSize->value());
+        seg ++;
+    } else {
+
+    }
+    if (ui->checkBoxChannel1->isChecked() && dataRomPointerCh1 != NULL) {
+        qwtPlotWave(CHANNEL_1, (double*)(&dataRomPointerCh1[ui->spinBoxBlockSize->value()*pos] ), ui->spinBoxBlockSize->value());
+        qwtPlotFft(CHANNEL_1, (double*)(&dataRomPointerCh1[ui->spinBoxBlockSize->value()*pos]), ui->spinBoxBlockSize->value());
+        seg ++;
+    }
+    if (ui->checkBoxChannel2->isChecked() && dataRomPointerCh2 != NULL) {
+        qwtPlotWave(CHANNEL_2, (double*)(&dataRomPointerCh2[ui->spinBoxBlockSize->value()*pos] ), ui->spinBoxBlockSize->value());
+        qwtPlotFft(CHANNEL_2, (double*)(&dataRomPointerCh2[ui->spinBoxBlockSize->value()*pos]), ui->spinBoxBlockSize->value());
+        seg ++;
+    }
+    if (ui->checkBoxChannel3->isChecked() && dataRomPointerCh3 != NULL) {
+        qwtPlotWave(CHANNEL_3, (double*)(&dataRomPointerCh3[ui->spinBoxBlockSize->value()*pos] ), ui->spinBoxBlockSize->value());
+        qwtPlotFft(CHANNEL_3, (double*)(&dataRomPointerCh3[ui->spinBoxBlockSize->value()*pos]), ui->spinBoxBlockSize->value());
+        seg ++;
+    }
+    if (seg != 0)
+        this->qwtShow();
 }
 
 void MainWindow::on_drawButton_clicked()
@@ -916,7 +1041,7 @@ void MainWindow::on_drawButton_clicked()
     QString file_name = QFileDialog::getOpenFileName(this,
                                                      tr("Open File"),
                                                      this->hookFileAddr,
-                                                     "Data Document(*.txt)",
+                                                     "Data Document(*.txt) Bin File(*.hex)",
                                                      0);
     if (!file_name.isNull()) {
         qDebug() << file_name ;
@@ -1033,3 +1158,8 @@ void MainWindow::on_actionconfig_triggered()
     on_actionProfile_triggered();
 }
 
+
+void MainWindow::on_horizontalSlider_do_actionTriggered(int action)
+{
+
+}
