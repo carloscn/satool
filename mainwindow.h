@@ -66,6 +66,7 @@
 #include <QVariant>
 #include <QSettings>
 #include <QtAlgorithms>
+#include <QNetworkProxy>
 
 class QFtp;
 class QFile;
@@ -117,6 +118,8 @@ private:
     bool voltage5v;
     QButtonGroup *voltageGroup;
     NetClientThread *socket;
+    QwtPlotPanner *panner;
+    QwtPlotZoomer* zoomer;
 
 private:
 
@@ -131,6 +134,7 @@ private:
     void qwtPlotFft( int, double *, int);
     void drawData(int pos);
     void get_ini_file_data();
+    void initTime();
 
 protected:
     void keyPressEvent(QKeyEvent *event);
@@ -161,14 +165,17 @@ private slots:
     void on_spinBox_valueChanged(int arg1);
     void on_drawButton_clicked();
     void on_actionProfile_triggered();
-    void on_radioButton5v_clicked(bool checked);
-    void on_radioButton10v_clicked(bool checked);
+//    void on_radioButton5v_clicked(bool checked);
+//    void on_radioButton10v_clicked(bool checked);
     void on_actionstartSample_triggered(bool checked);
     void on_actionstopSample_triggered();
     void on_actionlinkTcp_triggered();
     void on_actionDownloadFile_triggered();
     void on_actionconfig_triggered();
     void on_pushButton_merge_downloads_clicked();
+    void on_actionlinkTcp_2_triggered();
+    void on_comboBox_currentTextChanged(const QString &arg1);
+    void on_comboBox_currentIndexChanged(const QString &arg1);
 };
 
 #endif // MAINWINDOW_H

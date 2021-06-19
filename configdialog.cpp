@@ -115,6 +115,14 @@ void configDialog::on_pushButton_set_to_server_clicked()
     cmd.append( ip );
     cmd.append( mask );
     cmd.append( gate );
+    QSettings *configIniWrite = new QSettings("config.ini",QSettings::IniFormat);
+    configIniWrite->setValue("net/ip",ui->lineEdit_set_ip->text());
+    configIniWrite->setValue("net/mask",ui->lineEdit_set_mask->text());
+    configIniWrite->setValue("net/gate",ui->lineEdit_set_gate->text());
+    configIniWrite->setValue("net/port",ui->lineEdit_set_port->text());
+    configIniWrite->setValue("sample/rate",ui->comboBox_sample_rate->currentText());
+    delete configIniWrite;
+
     if (!this->net_socket->send_cmd_to_remote( (uint8_t*)cmd.data() , cmd.length())) {
         memcpy(this->cfg, &backConfig, sizeof(CONFIG));
         QMessageBox::critical(this, "错误提示", "网络数据校验失败，没有配置成功");
@@ -225,20 +233,28 @@ void configDialog::on_timer_update_current_time()
 void configDialog::on_pushButton_set_to_time_clicked()
 {
     QByteArray cmd;
+    QString str;
 
     // 20/04/05/ 12:20:50
+    cmd.clear();
     cmd.append( (char)0x53 );
-    cmd.append( hexstrToInt( ui->dateTimeEdit->sectionText(QDateTimeEdit::YearSection) ) );
-    cmd.append( hexstrToInt( ui->dateTimeEdit->sectionText(QDateTimeEdit::MonthSection) ) );
-    cmd.append( hexstrToInt( ui->dateTimeEdit->sectionText(QDateTimeEdit::DaySection) ) );
-    cmd.append( hexstrToInt( ui->dateTimeEdit->sectionText(QDateTimeEdit::HourSection) ) );
-    cmd.append( hexstrToInt( ui->dateTimeEdit->sectionText(QDateTimeEdit::MinuteSection ) ) );
-    cmd.append( hexstrToInt( ui->dateTimeEdit->sectionText(QDateTimeEdit::SecondSection ) ) );
+    cmd.append( (char)(ui->dateTimeEdit->sectionText(QDateTimeEdit::YearSection).toUInt()&0xFF)  );
+    cmd.append( (char)(ui->dateTimeEdit->sectionText(QDateTimeEdit::MonthSection).toUInt()&0xFF)  );
+    cmd.append( (char)(ui->dateTimeEdit->sectionText(QDateTimeEdit::DaySection).toUInt()&0xFF)  );
+    cmd.append( (char)(ui->dateTimeEdit->sectionText(QDateTimeEdit::HourSection).toUInt()&0xFF)  );
+    cmd.append( (char)(ui->dateTimeEdit->sectionText(QDateTimeEdit::MinuteSection ).toUInt()&0xFF)  );
+    cmd.append( (char)(ui->dateTimeEdit->sectionText(QDateTimeEdit::SecondSection ).toUInt()&0xFF)  );
+    qDebug() << "time " << cmd;
+    qDebug() << "ui" << ui->dateTimeEdit->sectionText(QDateTimeEdit::YearSection).toInt();
+    for(int i = cmd.length(); i < 13; i ++)
+    {
+        cmd.append((char)0x00);
+    }
     qDebug() << "time : " << this->arrayToHex( cmd );
     if (!this->net_socket->send_cmd_to_remote( (uint8_t*)cmd.data(), cmd.length() )) {
-        QMessageBox::critical(this, "错误提示", "网络数据校验失败，没有配置成功");
+        QMessageBox::critical(this, "错误提示", "网络数据校验失败，同步时钟失败");
     }else{
-        QMessageBox::information(this, "提示", "已写入配置");
+        QMessageBox::information(this, "提示", "同步时钟成功");
     }
 }
 /**
@@ -390,6 +406,7 @@ void configDialog::on_pushButton_fs_set_clicked()
     bool state;
     CONFIG cfgBackup;
     quint8 backUp = this->cfg->sampleRateKhz;
+    QString sampleRateKHz;
     memcpy(&cfgBackup, this->cfg, sizeof(CONFIG));
     cmd.append( (char)0x54 );
 
@@ -397,26 +414,32 @@ void configDialog::on_pushButton_fs_set_clicked()
     case 0:
         cmd.append( (char)10 );
         this->cfg->sampleRateKhz = 10;
+        sampleRateKHz = "10";
         break;
     case 1:
         cmd.append( (char)50 );
         this->cfg->sampleRateKhz = 50;
+        sampleRateKHz = "10";
         break;
     case 2:
         cmd.append( (char)100 );
         this->cfg->sampleRateKhz = 100;
+        sampleRateKHz = "100";
         break;
     case 3:
         cmd.append( (char)150 );
         this->cfg->sampleRateKhz = 150;
+        sampleRateKHz = "150";
         break;
     case 4:
         cmd.append( (char)180 );
         this->cfg->sampleRateKhz = 180;
+        sampleRateKHz = "180";
         break;
     case 5:
         cmd.append( (char)200 );
         this->cfg->sampleRateKhz = 200;
+        sampleRateKHz = "200";
         break;
     }
     for (quint8 i = 0; i < 11; i ++) {
@@ -428,6 +451,9 @@ void configDialog::on_pushButton_fs_set_clicked()
         QMessageBox::critical(this, "错误提示", "网络数据校验失败，没有配置成功");
         ui->textBrowser->append("设置采样率失败");
     }else{
+        QSettings *configIniWrite = new QSettings("config.ini",QSettings::IniFormat);
+        configIniWrite->setValue("sample/rate",sampleRateKHz);
+        delete configIniWrite;
         QMessageBox::information(this, "提示", "已写入配置");
         ui->textBrowser->append("设置采样率成功");
     }
@@ -443,10 +469,10 @@ void configDialog::on_pushButton_sample_clicked()
     }
     state = this->net_socket->send_cmd_to_remote( (uint8_t*)cmd.data() , cmd.length());
     if (!state) {
-        QMessageBox::critical(this, "错误提示", "网络数据校验失败，没有配置成功");
+        QMessageBox::critical(this, "错误提示", "网络数据校验失败，启动采样失败");
         ui->textBrowser->append("启动失败！");
     }else{
-        QMessageBox::information(this, "提示", "已写入配置");
+        QMessageBox::information(this, "提示", "启动采样成功！");
         ui->textBrowser->append("启动采样成功！");
     }
 }
@@ -462,9 +488,9 @@ void configDialog::on_pushButton_close_sample_clicked()
     state = this->net_socket->send_cmd_to_remote( (uint8_t*)cmd.data() , cmd.length());
     if (!state) {
         ui->textBrowser->append("关闭采样失败！");
-        QMessageBox::critical(this, "错误提示", "网络数据校验失败，没有配置成功");
+        QMessageBox::critical(this, "错误提示", "网络数据校验失败，关闭采样失败");
     }else{
         ui->textBrowser->append("关闭采样成功！");
-        QMessageBox::information(this, "提示", "已写入配置");
+        QMessageBox::information(this, "提示", "关闭采样成功");
     }
 }

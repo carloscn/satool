@@ -66,13 +66,14 @@ MainWindow::MainWindow(QWidget *parent) :
     //    this->glabalConfig.gate = "192.168.1.1";
     this->glabalConfig.gainFirst = 1;
     this->glabalConfig.gainSecond = 1;
-    this->voltageGroup = new QButtonGroup(this);
-    this->voltageGroup->addButton( ui->radioButton5v );
-    this->voltageGroup->addButton( ui->radioButton10v );
-    if(this->voltage5v == false)
-        ui->radioButton5v->setChecked(false);
-    else
-        ui->radioButton5v->setChecked(true);
+
+//    this->voltageGroup = new QButtonGroup(this);
+//    this->voltageGroup->addButton( ui->radioButton5v );
+//    this->voltageGroup->addButton( ui->radioButton10v );
+//    if(this->voltage5v == false)
+//        ui->radioButton5v->setChecked(false);
+//    else
+//        ui->radioButton5v->setChecked(true);
 
     this->isFileAutoLoad = ui->checkBox_autoload->isChecked();
     this->socket = new NetClientThread(this->glabalConfig.boardIp, this->glabalConfig.tcpPort);
@@ -80,9 +81,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->treeView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showLocalTreeViewMenu(QPoint)));
     ret = this->socket->set_connect(this->glabalConfig.boardIp, this->glabalConfig.tcpPort);
     if (ret != true) {
-        //QMessageBox::critical(this, "错误", "与下位机TCP通信失败，请检查与板子网络连接！");
+        QMessageBox::critical(this, "错误", "与下位机TCP通信失败，请检查与板子网络连接！");
+    } else {
+
+        ui->statusBar->showMessage("与板子TCP通信成功", 5000);
     }
-    ui->statusBar->showMessage("与板子TCP通信成功", 5000);
+
 }
 
 MainWindow::~MainWindow()
@@ -124,12 +128,7 @@ void MainWindow::get_ini_file_data()
         configIniRead->setValue("sample/rate","10");
     this->glabalConfig.sampleRateKhz = configIniRead->value("sample/rate").toUInt();
     if(configIniRead->value("voltage/range").isNull() == true)
-        configIniRead->setValue("voltage/range","5V");
-    if(configIniRead->value("voltage/range").toString() == "5V"){
-        this->voltage5v = true;
-        qDebug() << "5V";
-    }else
-        this->voltage5v = false;
+        configIniRead->setValue("voltage/range","5");
     delete configIniRead;
 }
 
@@ -162,14 +161,30 @@ void MainWindow::initQwt()
     ui->qwt_fft->insertLegend(new QwtLegend(), QwtPlot::TopLegend);
     ui->qwt_ch->setStyleSheet("background-color:rgb(255,255,255)");
     ui->qwt_fft->setStyleSheet("background-color:rgb(255,255,255)");
-    if(this->voltage5v == false)
-    {
-        ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
-        ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -12.1, 12.1);
-    } else {
-        ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
-        ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -6.1, 6.1);
+
+    QSettings *configIniRead = new QSettings("config.ini",QSettings::IniFormat);
+    QString str = configIniRead->value("voltage/range").toString();
+    delete configIniRead;
+    ui->comboBox->setCurrentText(str); // 显示当前量程范围
+
+    float scale = str.toFloat();
+    if(scale < 0.8){
+        scale += 0.1;
+    } else if ( 4.0 < scale && scale < 6.0){
+        scale += 1;
     }
+    qDebug() << "scale" << scale;
+    ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
+    ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -scale, scale);
+
+//    if(this->voltage5v == false)
+//    {
+//        ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
+//        ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -12.1, 12.1);
+//    } else {
+//        ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
+//        ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -6.1, 6.1);
+//    }
 
     this->qwtCurve1Ch1 = new QwtPlotCurve("Channel1");
     this->qwtCurve1Ch2 = new QwtPlotCurve("Channel2");
@@ -216,6 +231,20 @@ void MainWindow::initQwt()
     gridCh->attach(ui->qwt_ch);
     gridFft->attach(ui->qwt_fft);
 
+    //配置缩放
+    // 滚轮缩放
+//    QwtPlotMagnifier *magnifier = new QwtPlotMagnifier(ui->qwt_ch->canvas());
+    //magnifier->setAxisEnabled(QwtPlot::yRight,false);
+    // 点击左键移动画布
+    panner = new QwtPlotPanner(ui->qwt_ch->canvas());
+    //panner->setAxisEnabled(QwtPlot::yRight,true);
+    // 点击右键恢复默认坐标范围
+//    zoomer = new QwtPlotZoomer(ui->qwt_ch->canvas() );
+//    zoomer->setRubberBandPen( QColor( Qt::black ) );
+//    zoomer->setTrackerPen( QColor( Qt::black ) );
+//    zoomer->setMousePattern(QwtEventPattern::MouseSelect1,Qt::LeftButton, Qt::ControlModifier );
+    //zoomer->setMousePattern(QwtEventPattern::MouseSelect3,Qt::RightButton );
+
 }
 
 void MainWindow::initDisplay()
@@ -233,6 +262,37 @@ void MainWindow::initDisplay()
     QAction *server_rm = new QAction(QObject::tr("删除"),this);
     this->mServerMenu->addAction(server_rm);
 }
+
+void MainWindow::initTime()
+{
+    QDateTime curDateTime = QDateTime::currentDateTime();
+    QByteArray cmd;
+    QString str;
+#if 0
+    // 20/04/05/ 12:20:50
+    cmd.clear();
+    cmd.append( (char)0x53 );
+    cmd.append( (char)()  );
+    cmd.append( (char)(ui->dateTimeEdit->sectionText(QDateTimeEdit::MonthSection).toUInt()&0xFF)  );
+    cmd.append( (char)(ui->dateTimeEdit->sectionText(QDateTimeEdit::DaySection).toUInt()&0xFF)  );
+    cmd.append( (char)(ui->dateTimeEdit->sectionText(QDateTimeEdit::HourSection).toUInt()&0xFF)  );
+    cmd.append( (char)(ui->dateTimeEdit->sectionText(QDateTimeEdit::MinuteSection ).toUInt()&0xFF)  );
+    cmd.append( (char)(ui->dateTimeEdit->sectionText(QDateTimeEdit::SecondSection ).toUInt()&0xFF)  );
+    qDebug() << "time " << cmd;
+    qDebug() << "ui" << ui->dateTimeEdit->sectionText(QDateTimeEdit::YearSection).toInt();
+    for(int i = cmd.length(); i < 13; i ++)
+    {
+        cmd.append((char)0x00);
+    }
+    qDebug() << "time : " << this->arrayToHex( cmd );
+    if (!this->net_socket->send_cmd_to_remote( (uint8_t*)cmd.data(), cmd.length() )) {
+        QMessageBox::critical(this, "错误提示", "网络数据校验失败，同步时钟失败");
+    }else{
+        QMessageBox::information(this, "提示", "同步时钟成功");
+    }
+#endif
+}
+
 void MainWindow::ftpCommandStarted(int)
 {
     int id = ftp->currentCommand();
@@ -410,6 +470,7 @@ void MainWindow::on_connectButton_clicked()
     QString ftpServer = ui->ftpServerLineEdit->text();
     QString userName = "root";
     QString passWord = "";
+    QNetworkProxy::setApplicationProxy(QNetworkProxy::NoProxy);
     ftp->connectToHost(ftpServer, FTP_PORT);
     ftp->login(userName,passWord);
     ui->statusBar->showMessage("和信号板建立FTP连接中...", 5000);
@@ -427,8 +488,9 @@ void MainWindow::addToList(const QUrlInfo &urlInfo)
     double  dFileSize = ((int)(urlInfo.size()/1024.0*100))/100.0;
     QString fileSize = QString::number(dFileSize,'g',10)+"KB";
     qDebug() << "fileSize: " << fileSize;
-    if(fileSize == "0KB")
+    if( urlInfo.isDir() == false && fileSize == "0KB")
         return;
+
     item->setText(1, fileSize);
     item->setText(2, urlInfo.lastModified().toString("MMM dd yyyy"));
     item->setText(3, urlInfo.owner());
@@ -933,6 +995,7 @@ void MainWindow::on_actionProfile_triggered()
     int ret = 0;
     configDialog *dialog = new configDialog(this);
     dialog->setWindowTitle("配置窗口");
+    this->get_ini_file_data();
     ret = dialog->set_config(&this->glabalConfig, this->socket);
     if (ret != 0) {
         QMessageBox::critical(   this,
@@ -941,39 +1004,40 @@ void MainWindow::on_actionProfile_triggered()
         delete dialog;
         return;
     }
+
     dialog->setModal(false);
     dialog->show();
 }
 
-void MainWindow::on_radioButton5v_clicked(bool checked)
-{
-    this->voltage5v = checked;
-    if (this->voltage5v == true)
-        qDebug() << "current set 5V";
-    else
-        qDebug() << "current set 10V";
-    QSettings *configIniWrite = new QSettings("config.ini",QSettings::IniFormat);
-    configIniWrite->setValue("voltage/range","5V");
-    delete configIniWrite;
-    ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
-    ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -6.1, 6.1);
-    ui->qwt_ch->replot();
-}
+//void MainWindow::on_radioButton5v_clicked(bool checked)
+//{
+//    this->voltage5v = checked;
+//    if (this->voltage5v == true)
+//        qDebug() << "current set 5V";
+//    else
+//        qDebug() << "current set 10V";
+//    QSettings *configIniWrite = new QSettings("config.ini",QSettings::IniFormat);
+//    configIniWrite->setValue("voltage/range","5V");
+//    delete configIniWrite;
+//    ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
+//    ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -6.1, 6.1);
+//    ui->qwt_ch->replot();
+//}
 
-void MainWindow::on_radioButton10v_clicked(bool checked)
-{
-    this->voltage5v = !checked;
-    if (this->voltage5v == true)
-        qDebug() << "current set 5V";
-    else
-        qDebug() << "current set 10V";
-    QSettings *configIniWrite = new QSettings("config.ini",QSettings::IniFormat);
-    configIniWrite->setValue("voltage/range","10V");
-    delete configIniWrite;
-    ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
-    ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -12.1, 12.1);
-    ui->qwt_ch->replot();
-}
+//void MainWindow::on_radioButton10v_clicked(bool checked)
+//{
+//    this->voltage5v = !checked;
+//    if (this->voltage5v == true)
+//        qDebug() << "current set 5V";
+//    else
+//        qDebug() << "current set 10V";
+//    QSettings *configIniWrite = new QSettings("config.ini",QSettings::IniFormat);
+//    configIniWrite->setValue("voltage/range","10V");
+//    delete configIniWrite;
+//    ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
+//    ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -12.1, 12.1);
+//    ui->qwt_ch->replot();
+//}
 
 void MainWindow::on_actionstartSample_triggered(bool checked)
 {
@@ -1020,6 +1084,7 @@ void MainWindow::on_actionstopSample_triggered()
 
 void MainWindow::on_actionlinkTcp_triggered()
 {
+    qDebug() << "hello";
     on_connectButton_clicked();
 }
 
@@ -1033,3 +1098,47 @@ void MainWindow::on_actionconfig_triggered()
     on_actionProfile_triggered();
 }
 
+
+void MainWindow::on_actionlinkTcp_2_triggered()
+{
+    on_connectButton_clicked();
+}
+
+void MainWindow::on_comboBox_currentTextChanged(const QString &arg1)
+{
+//    QSettings *configIniWrite = new QSettings("config.ini",QSettings::IniFormat);
+//    QString str = arg1;
+//    float scale = arg1.toFloat();
+//    qDebug() << "scale" << scale;
+//    if(scale < 0.8){
+//        scale += 0.1;
+//    } else if ( 4.0 < scale && scale < 6.0){
+//        scale += 1;
+//    }
+//    qDebug() << "scale" << scale;
+//    configIniWrite->setValue("voltage/range",str);
+//    delete configIniWrite;
+//    ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
+//    ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -scale, scale);
+//    ui->qwt_ch->replot();
+}
+
+void MainWindow::on_comboBox_currentIndexChanged(const QString &arg1)
+{
+    QSettings *configIniWrite = new QSettings("config.ini",QSettings::IniFormat);
+    QString str = arg1;
+    float scale = arg1.toFloat();
+    qDebug() << "scale" << scale;
+    if(scale < 0.8){
+        scale += 0.1;
+    } else if ( 4.0 < scale && scale < 6.0){
+        scale += 1;
+    }
+    qDebug() << "scale" << scale;
+    configIniWrite->setValue("voltage/range",str);
+    delete configIniWrite;
+    ui->qwt_ch->setAxisScale(QwtPlot::xBottom, 0, ui->spinBoxBlockSize->value());
+    ui->qwt_ch->setAxisScale(QwtPlot::yLeft, -scale, scale);
+    ui->qwt_ch->replot();
+
+}
