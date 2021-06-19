@@ -901,6 +901,18 @@ void MainWindow::on_treeView_clicked(const QModelIndex &index)
 
 void MainWindow::on_pushButtonDraw_clicked()
 {
+    if (dataRomPointerCh0 != NULL) {
+        delete dataRomPointerCh0;
+    }
+    if (dataRomPointerCh1 != NULL) {
+        delete dataRomPointerCh1;
+    }
+    if (dataRomPointerCh2 != NULL) {
+        delete dataRomPointerCh2;
+    }
+    if (dataRomPointerCh3 != NULL) {
+        delete dataRomPointerCh3;
+    }
     QString dataFile = ui->lineEditLoadData->text();
     if (dataFile.isEmpty()) {
         return;
