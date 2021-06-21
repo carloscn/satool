@@ -211,7 +211,7 @@ int configDialog::set_config(CONFIG *cfg, NetClientThread *socket)
 
 void configDialog::on_timer_update_current_time()
 {
-    //qDebug() << "update current time";
+    qDebug() << "update current time";
     QDateTime curDateTime = QDateTime::currentDateTime();
     ui->dateTimeEdit->sectionText(QDateTimeEdit::YearSection);
     ui->dateTimeEdit->sectionText(QDateTimeEdit::MonthSection );
@@ -225,15 +225,20 @@ void configDialog::on_timer_update_current_time()
 void configDialog::on_pushButton_set_to_time_clicked()
 {
     QByteArray cmd;
-
+    QDate curDate = QDate::currentDate();
+    QTime curTime = QTime::currentTime();
     // 20/04/05/ 12:20:50
     cmd.append( (char)0x53 );
-    cmd.append( hexstrToInt( ui->dateTimeEdit->sectionText(QDateTimeEdit::YearSection) ) );
-    cmd.append( hexstrToInt( ui->dateTimeEdit->sectionText(QDateTimeEdit::MonthSection) ) );
-    cmd.append( hexstrToInt( ui->dateTimeEdit->sectionText(QDateTimeEdit::DaySection) ) );
-    cmd.append( hexstrToInt( ui->dateTimeEdit->sectionText(QDateTimeEdit::HourSection) ) );
-    cmd.append( hexstrToInt( ui->dateTimeEdit->sectionText(QDateTimeEdit::MinuteSection ) ) );
-    cmd.append( hexstrToInt( ui->dateTimeEdit->sectionText(QDateTimeEdit::SecondSection ) ) );
+    cmd.append( TIME_DATA_DEAL( curDate.year() ) );
+    cmd.append( TIME_DATA_DEAL( curDate.month() ) );
+    if (TIME_DATA_DEAL( curDate.month() > 12)) {
+        QMessageBox::critical(this, "错误提示", "Qt库解析时间接口错误，Qt库提供BCD码不符合本工程");
+        return;
+    }
+    cmd.append( TIME_DATA_DEAL( curDate.day() ) );
+    cmd.append( TIME_DATA_DEAL( curTime.hour() ) );
+    cmd.append( TIME_DATA_DEAL( curTime.minute() ) );
+    cmd.append( TIME_DATA_DEAL( curTime.second() ) );
     qDebug() << "time : " << this->arrayToHex( cmd );
     if (!this->net_socket->send_cmd_to_remote( (uint8_t*)cmd.data(), cmd.length() )) {
         QMessageBox::critical(this, "错误提示", "网络数据校验失败，没有配置成功");
