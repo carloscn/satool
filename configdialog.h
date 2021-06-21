@@ -32,6 +32,8 @@
 #include <QMessageBox>
 #include "netclientthread.h"
 
+#define     TIME_DATA_DEAL(x)     (x%100)
+
 namespace Ui {
 class configDialog;
 }

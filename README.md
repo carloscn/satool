@@ -10,6 +10,8 @@ SATOOL是一款基于TCP和FTP协议的数据传输和分析工具性软件，�
 
 下载依赖库：`git submodule update`
 
+国内镜像地址： https://gitee.com/carloswei/satool
+
 ## 1 硬件使用要求
 
 在硬件上面关键是对于网络和电源的配置。请关注以下网络配置功能，**同时对于电源请使用+12V/2A的直流电源进行稳定持续性供电**。
