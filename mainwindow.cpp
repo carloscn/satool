@@ -80,7 +80,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->treeView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showLocalTreeViewMenu(QPoint)));
     ret = this->socket->set_connect(this->glabalConfig.boardIp, this->glabalConfig.tcpPort);
     if (ret != true) {
-        //QMessageBox::critical(this, "错误", "与下位机TCP通信失败，请检查与板子网络连接！");
+        QMessageBox::critical(this, "错误", "与下位机TCP通信失败，请检查与板子网络连接！");
     }
     ui->statusBar->showMessage("与板子TCP通信成功", 5000);
 }
