@@ -120,6 +120,8 @@ private:
     bool voltage5v;
     QButtonGroup *voltageGroup;
     NetClientThread *socket;
+    QTimer *timerAntiDiscon;
+    QString curFtpPath;
 
 private:
 
@@ -136,6 +138,8 @@ private:
     void drawData(int pos);
     void get_ini_file_data();
     void qwtShow();
+    bool deleteFtpDirectory(QFtp *ftp, const QString &path);
+    void ftpCd(QString path);
 
 protected:
     void keyPressEvent(QKeyEvent *event);
@@ -175,6 +179,7 @@ private slots:
     void on_actionconfig_triggered();
     void on_pushButton_merge_downloads_clicked();
     void on_horizontalSlider_do_actionTriggered(int action);
+    void on_timerAntiConn_timeout();
 };
 
 #endif // MAINWINDOW_H

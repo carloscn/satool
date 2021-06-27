@@ -86,11 +86,29 @@ MainWindow::MainWindow(QWidget *parent) :
         QMessageBox::critical(this, "错误", "与下位机TCP通信失败，请检查与板子网络连接！");
     }
     ui->statusBar->showMessage("与板子TCP通信成功", 5000);
+
+    timerAntiDiscon = new QTimer();
+    //connect(timerAntiDiscon, SIGNAL(timeout()), this, SLOT(on_timerAntiConn_timeout()));
+    //timerAntiDiscon->setInterval(10000);
 }
 
 MainWindow::~MainWindow()
 {
+    delete timerAntiDiscon;
     delete ui;
+}
+
+void MainWindow::on_timerAntiConn_timeout()
+{
+    ftpCd(".");
+    qDebug("send alive signal to ftp.");
+}
+
+void MainWindow::ftpCd(QString path)
+{
+    ftp->cd(path);
+    this->curFtpPath = path;
+    qDebug() << "ftp cd: "  << path;
 }
 
 void MainWindow::get_ini_file_data()
@@ -262,6 +280,7 @@ void MainWindow::initDisplay()
     QAction *server_rm = new QAction(QObject::tr("删除"),this);
     this->mServerMenu->addAction(server_rm);
 }
+
 void MainWindow::ftpCommandStarted(int)
 {
     int id = ftp->currentCommand();
@@ -278,6 +297,12 @@ void MainWindow::ftpCommandStarted(int)
         break;
     case QFtp::Close :
         ui->label->setText(tr("正在关闭连接…"));
+        this->timerAntiDiscon->stop();
+        break;
+    case QFtp::Unconnected:
+        // There is no connection to the host.
+        ui->label->setText( "Status(%d) = disconnected status");
+        break;
     }
 }
 
@@ -442,8 +467,10 @@ void MainWindow::on_connectButton_clicked()
     ftp->connectToHost(ftpServer, FTP_PORT);
     ftp->login(userName,passWord);
     ui->statusBar->showMessage("和信号板建立FTP连接中...", 5000);
-    ftp->cd("/");
-    //ftp->cd("/mnt/mmcblk0p1");
+    ftpCd("/");
+    ftpCd("/mnt");
+    //ftpCd("/mnt/mmcblk0p1");
+    this->timerAntiDiscon->start();
 }
 
 void MainWindow::addToList(const QUrlInfo &urlInfo)
@@ -483,7 +510,7 @@ void MainWindow::processItem(QTreeWidgetItem *item, int)
         isDirectory.clear();
         currentPath += "/";
         currentPath += name;
-        ftp->cd(_ToSpecialEncoding(name));
+        ftpCd(_ToSpecialEncoding(name));
         ftp->list();    //重新显示文件列表
         ui->cdToParentButton->setEnabled(true);
     }
@@ -499,9 +526,9 @@ void MainWindow::on_cdToParentButton_clicked()
     qDebug()<<"now:currentPath:"<<currentPath;
     if (currentPath.isEmpty()) {
         ui->cdToParentButton->setEnabled(false);
-        ftp->cd("/");
+        ftpCd("/");
     } else {
-        ftp->cd(_ToSpecialEncoding(currentPath));
+        ftpCd(_ToSpecialEncoding(currentPath));
     }
     ftp->list();
 }
@@ -732,11 +759,45 @@ void MainWindow::slotDeleteFile()
     for(int i = 0;i < indexCount;i++)
     {
         fileName = indexList.at(i).data().toString();
-        if(isDirectory.value(fileName))
+        if(isDirectory.value(fileName)) {
+            //deleteFtpDirectory(ftp, _ToSpecialEncoding(fileName));
             ftp->rmdir(_ToSpecialEncoding(fileName));
-        else
+        } else {
             ftp->remove(_ToSpecialEncoding(fileName));
+        }
     }
+}
+
+// not finish deleteFTP dir.
+bool MainWindow::deleteFtpDirectory(QFtp *ftp, const QString &path)
+{
+    if (ftp == NULL) {
+        return false;
+    }
+    quint32 pageCount = 0, i = 0, j = 0, indexCounter = 0;
+    QString fileName;
+    ftp->cd(path);
+    qDebug() << "cd to " << path;
+    ui->fileList->clear();
+    isDirectory.clear();
+    ftp->list();
+    QTreeWidgetItemIterator it(ui->fileList);
+    qDebug() << "delete count " << indexCounter;
+    while(*it) {
+        //QTreeWidgetItem  *twi = *it;
+        //QModelIndex index = twi->child(0);
+        //fileName = index.data().toString();
+        qDebug() << "file name" << fileName;
+        if(isDirectory.value(fileName)) {
+            deleteFtpDirectory(ftp, _ToSpecialEncoding(fileName));
+            ftp->rmdir(_ToSpecialEncoding(fileName));
+        } else {
+            ftp->remove(_ToSpecialEncoding(fileName));
+        }
+        i ++;
+        it ++;
+    }
+    return true;
 }
 
 //本地文件 右键操作
@@ -748,7 +809,6 @@ void MainWindow::showLocalTreeViewMenu(const QPoint &pos)
     menu->addAction(QString(tr("刷新")),this,SLOT(localDirRefresh()));
     menu->exec(QCursor::pos());
 }
-
 
 void MainWindow::rm()
 {
@@ -767,12 +827,13 @@ void MainWindow::rm()
             ok = dirModel->remove(index);
         }
         if (!ok) {
-            //            QMessageBox::information(this,
-            //                                     tr("Remove"),
-            //                                     tr("Failed to remove %1").arg(dirModel->fileName(indexList.at(i))));
+            QMessageBox::information(this,
+                                     tr("Remove"),
+                                     tr("Failed to remove %1").arg(dirModel->fileName(indexList.at(i))));
         }
     }
 }
+
 //本地目录刷新
 void MainWindow::localDirRefresh(){
     dirModel->refresh();
