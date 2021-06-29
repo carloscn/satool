@@ -1114,7 +1114,7 @@ void MainWindow::on_drawButton_clicked()
     QString file_name = QFileDialog::getOpenFileName(this,
                                                      tr("Open File"),
                                                      this->hookFileAddr,
-                                                     "Data Document(*.txt) Bin File(*.hex)",
+                                                     "四通道数据(*.hex);;单通道数据(*.txt)",
                                                      0);
     if (!file_name.isNull()) {
         qDebug() << file_name ;
