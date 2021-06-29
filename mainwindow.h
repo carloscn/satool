@@ -100,7 +100,10 @@ private:
     int indexCount;
     int currentIndex;
     quint32 plotCount;
-    double *dataRomPointer;
+    double *dataRomPointerCh0;
+    double *dataRomPointerCh1;
+    double *dataRomPointerCh2;
+    double *dataRomPointerCh3;
     QPen pen;
     int dataRange;
     QwtPlotCurve* qwtCurve1Ch1;
@@ -131,8 +134,13 @@ private:
     void initQwt();
     void qwtPlotWave( unsigned int , double* , unsigned long);
     void qwtPlotFft( int, double *, int);
+    void qwtCleanChannel();
     void drawData(int pos);
     void get_ini_file_data();
+<<<<<<< HEAD
+    void qwtShow();
+=======
+>>>>>>> master
     bool deleteFtpDirectory(QFtp *ftp, const QString &path);
     void ftpCd(QString path);
 
@@ -173,6 +181,10 @@ private slots:
     void on_actionDownloadFile_triggered();
     void on_actionconfig_triggered();
     void on_pushButton_merge_downloads_clicked();
+<<<<<<< HEAD
+    void on_horizontalSlider_do_actionTriggered(int action);
+=======
+>>>>>>> master
     void on_timerAntiConn_timeout();
 };
 

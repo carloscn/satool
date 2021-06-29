@@ -26,7 +26,7 @@
       <property name="title">
        <string>图像绘制</string>
       </property>
-      <layout class="QVBoxLayout" name="verticalLayout_6">
+      <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <item>
@@ -130,6 +130,38 @@
           <widget class="QPushButton" name="pushButtonDraw">
            <property name="text">
             <string>绘制</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <item>
+          <widget class="QCheckBox" name="checkBoxChannel0">
+           <property name="text">
+            <string>CH0 </string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxChannel1">
+           <property name="text">
+            <string>CH1</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxChannel2">
+           <property name="text">
+            <string>CH2</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxChannel3">
+           <property name="text">
+            <string>CH3</string>
            </property>
           </widget>
          </item>
