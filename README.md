@@ -6,11 +6,7 @@ SATOOL是一款基于TCP和FTP协议的数据传输和分析工具性软件，�
 
 下载代码：`git clone https://github.com/carloscn/satool.git`
 
-加载子模块： `git submodule init`
-
-下载依赖库：`git submodule update`
-
-国内镜像地址： https://gitee.com/carloswei/satool
+国内gitee镜像下载代码：`git clone https://gitee.com/carloswei/satool.git`
 
 ## 1 硬件使用要求
 
