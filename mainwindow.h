@@ -116,12 +116,14 @@ private:
     QwtPlotCurve* qwtCurve1Ch4Fft;
     bool isFileAutoLoad;
     QString hookFileAddr;
-    CONFIG glabalConfig;
+    CONFIG globalConfig;
     bool voltage5v;
     QButtonGroup *voltageGroup;
     NetClientThread *socket;
     QTimer *timerAntiDiscon;
     QString curFtpPath;
+    bool is_ch1_display;
+    bool is_ch4_display;
 
 private:
 
@@ -137,10 +139,7 @@ private:
     void qwtCleanChannel();
     void drawData(int pos);
     void get_ini_file_data();
-<<<<<<< HEAD
     void qwtShow();
-=======
->>>>>>> master
     bool deleteFtpDirectory(QFtp *ftp, const QString &path);
     void ftpCd(QString path);
 
@@ -181,11 +180,11 @@ private slots:
     void on_actionDownloadFile_triggered();
     void on_actionconfig_triggered();
     void on_pushButton_merge_downloads_clicked();
-<<<<<<< HEAD
     void on_horizontalSlider_do_actionTriggered(int action);
-=======
->>>>>>> master
     void on_timerAntiConn_timeout();
+    void on_radioButton1ch_clicked();
+    void on_radioButton4ch_clicked();
+    void on_comboBox_sample_rate_currentIndexChanged(int index);
 };
 
 #endif // MAINWINDOW_H

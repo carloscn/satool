@@ -61,14 +61,14 @@ MainWindow::MainWindow(QWidget *parent) :
     this->get_ini_file_data();
 
     this->initQwt();
-    this->glabalConfig.boardIp = ui->ftpServerLineEdit->text();
-    this->glabalConfig.ftpPort = FTP_PORT;
+    this->globalConfig.boardIp = ui->ftpServerLineEdit->text();
+    this->globalConfig.ftpPort = FTP_PORT;
     //    this->glabalConfig.tcpPort = TCP_PORT;
     //    this->glabalConfig.sampleRateKhz = 10;
     //    this->glabalConfig.mask = "255.255.255.0";
     //    this->glabalConfig.gate = "192.168.1.1";
-    this->glabalConfig.gainFirst = 1;
-    this->glabalConfig.gainSecond = 1;
+    this->globalConfig.gainFirst = 1;
+    this->globalConfig.gainSecond = 1;
     this->voltageGroup = new QButtonGroup(this);
     this->voltageGroup->addButton( ui->radioButton5v );
     this->voltageGroup->addButton( ui->radioButton10v );
@@ -78,10 +78,10 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->radioButton5v->setChecked(true);
 
     this->isFileAutoLoad = ui->checkBox_autoload->isChecked();
-    this->socket = new NetClientThread(this->glabalConfig.boardIp, this->glabalConfig.tcpPort);
+    this->socket = new NetClientThread(this->globalConfig.boardIp, this->globalConfig.tcpPort);
     //this->on_radioButton10v_clicked(true);
     connect(ui->treeView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showLocalTreeViewMenu(QPoint)));
-    ret = this->socket->set_connect(this->glabalConfig.boardIp, this->glabalConfig.tcpPort);
+    ret = this->socket->set_connect(this->globalConfig.boardIp, this->globalConfig.tcpPort);
     if (ret != true) {
         QMessageBox::critical(this, "错误", "与下位机TCP通信失败，请检查与板子网络连接！");
     }
@@ -90,6 +90,9 @@ MainWindow::MainWindow(QWidget *parent) :
     timerAntiDiscon = new QTimer();
     //connect(timerAntiDiscon, SIGNAL(timeout()), this, SLOT(on_timerAntiConn_timeout()));
     //timerAntiDiscon->setInterval(10000);
+    this->ui->radioButton4ch->setChecked(true);
+    this->is_ch1_display = ui->radioButton1ch->isChecked();
+    this->is_ch4_display = ui->radioButton4ch->isChecked();
 }
 
 MainWindow::~MainWindow()
@@ -134,16 +137,16 @@ void MainWindow::get_ini_file_data()
     ui->ftpServerLineEdit->setText( configIniRead->value("net/ip").toString() );
     if(configIniRead->value("net/mask").isNull() == true)
         configIniRead->setValue("net/mask","255.255.255.0");
-    this->glabalConfig.mask = configIniRead->value("net/mask").toString();
+    this->globalConfig.mask = configIniRead->value("net/mask").toString();
     if(configIniRead->value("net/gate").isNull() == true)
         configIniRead->setValue("net/gate","192.168.1.1");
-    this->glabalConfig.gate = configIniRead->value("net/gate").toString();
+    this->globalConfig.gate = configIniRead->value("net/gate").toString();
     if(configIniRead->value("net/port").isNull() == true)
         configIniRead->setValue("net/port","5000");
-    this->glabalConfig.tcpPort = configIniRead->value("net/port").toULongLong();
+    this->globalConfig.tcpPort = configIniRead->value("net/port").toULongLong();
     if(configIniRead->value("sample/rate").isNull() == true)
         configIniRead->setValue("sample/rate","10");
-    this->glabalConfig.sampleRateKhz = configIniRead->value("sample/rate").toUInt();
+    this->globalConfig.sampleRateKhz = configIniRead->value("sample/rate").toUInt();
     if(configIniRead->value("voltage/range").isNull() == true)
         configIniRead->setValue("voltage/range","5V");
     if(configIniRead->value("voltage/range").toString() == "5V"){
@@ -853,7 +856,7 @@ void MainWindow::qwtPlotFft(int channel, double *rom, int NP)
     fftwf_plan p;
     fftwf_complex  *in1_c = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)* NP);;
     fftwf_complex  *out1_c = (fftwf_complex *)fftwf_malloc(sizeof(fftwf_complex) * NP);
-    float ui_sample_freq = (float)this->glabalConfig.sampleRateKhz * 1000.0f;
+    float ui_sample_freq = (float)this->globalConfig.sampleRateKhz * 1000.0f;
     QVector<QPointF> vector;
     double current_fft_value;
 
@@ -982,6 +985,7 @@ void MainWindow::on_pushButtonDraw_clicked()
     QFileInfo fileInfo;
     quint64 dataLen;
     float A = 0;
+
     fileInfo.setFile(dataFile);
     dataLen = fileInfo.size();
     qDebug() <<"file size : " << dataLen;
@@ -990,7 +994,12 @@ void MainWindow::on_pushButtonDraw_clicked()
     fileData.clear();
     fileData = file.read(dataLen);
     file.close();
-    /* Logic of dealing single channel data */
+    /**
+     * Logic of dealing single channel data
+     * the name is xxx.txt
+     * \note
+     * it is difference from xxx.hex signle channel data.
+     */
     if (dataFile.contains(".txt")) {
         dataLen = dataLen/2;
         qint16 dataTemp = 0;
@@ -1021,47 +1030,83 @@ void MainWindow::on_pushButtonDraw_clicked()
         this->dataRomPointerCh0 = dataRom;
         ui->spinBoxBlockSize->setEnabled(false);
         on_spinBox_valueChanged(0);
-    /* Logic of dealing with four channels data */
+    /* Logic of dealing xxx.hex data file */
+    /**
+     * \brief Logic of dealing xxx.hex data file.
+     * 1) get hex type from is_ch1/4_display.
+     * 2) ch1 is single channel data file.
+     * 3) ch4 is four channle data file.
+     */
     } else if (dataFile.contains(".hex")) {
-        quint32 j = 0;
-        dataLen = dataLen/8;
-        qint16 dataTemp[4];
-        double dataTempDouble[4];
-        quint8 dataLow[4],dataHigh[4];
-        int range = dataLen / ui->spinBoxBlockSize->value() - 1;
-        ui->spinBox->setRange(0,range);
-        ui->horizontalSlider_do->setRange(0, range);
-        this->dataRange = range;
-        double *dataRom1 = new double[dataLen + 1];
-        double *dataRom2 = new double[dataLen + 1];
-        double *dataRom3 = new double[dataLen + 1];
-        double *dataRom4 = new double[dataLen + 1];
-        if (this->voltage5v == true) {
-            A = 5.0f;
-        }else {
-            A = 10.0f;
-        }
-        for(quint64 i = 0; i < dataLen; i ++) {
-            memset(dataTemp, 0, 4);
-            for (j = 0; j < 4; j ++) {
-                dataLow[j] = fileData.at(8*i + 2*j);
-                dataHigh[j] = fileData.at(8*i + 2*j + 1);
-                dataTemp[j] = dataHigh[j];
-                dataTemp[j] |= dataLow[j] << 8;
-                dataTempDouble[j] = dataTemp[j] * 1.0;
+        if (is_ch4_display) {
+            quint32 j = 0;
+            dataLen = dataLen/8;
+            qint16 dataTemp[4];
+            double dataTempDouble[4];
+            quint8 dataLow[4],dataHigh[4];
+            int range = dataLen / ui->spinBoxBlockSize->value() - 1;
+            ui->spinBox->setRange(0,range);
+            ui->horizontalSlider_do->setRange(0, range);
+            this->dataRange = range;
+            double *dataRom1 = new double[dataLen + 1];
+            double *dataRom2 = new double[dataLen + 1];
+            double *dataRom3 = new double[dataLen + 1];
+            double *dataRom4 = new double[dataLen + 1];
+            if (this->voltage5v == true) {
+                A = 5.0f;
+            }else {
+                A = 10.0f;
             }
-            dataRom1[i] = dataTempDouble[0] / 32768.0 * A;
-            dataRom2[i] = dataTempDouble[1] / 32768.0 * A;
-            dataRom3[i] = dataTempDouble[2] / 32768.0 * A;
-            dataRom4[i] = dataTempDouble[3] / 32768.0 * A;
-        }
+            for(quint64 i = 0; i < dataLen; i ++) {
+                memset(dataTemp, 0, 4);
+                for (j = 0; j < 4; j ++) {
+                    dataLow[j] = fileData.at(8*i + 2*j);
+                    dataHigh[j] = fileData.at(8*i + 2*j + 1);
+                    dataTemp[j] = dataHigh[j];
+                    dataTemp[j] |= dataLow[j] << 8;
+                    dataTempDouble[j] = dataTemp[j] * 1.0;
+                }
+                dataRom1[i] = dataTempDouble[0] / 32768.0 * A;
+                dataRom2[i] = dataTempDouble[1] / 32768.0 * A;
+                dataRom3[i] = dataTempDouble[2] / 32768.0 * A;
+                dataRom4[i] = dataTempDouble[3] / 32768.0 * A;
+            }
 
-        this->dataRomPointerCh0 = dataRom1;
-        this->dataRomPointerCh1 = dataRom2;
-        this->dataRomPointerCh2 = dataRom3;
-        this->dataRomPointerCh3 = dataRom4;
-        ui->spinBoxBlockSize->setEnabled(false);
-        on_spinBox_valueChanged(0);
+            this->dataRomPointerCh0 = dataRom1;
+            this->dataRomPointerCh1 = dataRom2;
+            this->dataRomPointerCh2 = dataRom3;
+            this->dataRomPointerCh3 = dataRom4;
+            ui->spinBoxBlockSize->setEnabled(false);
+            on_spinBox_valueChanged(0);
+        } else {
+            dataLen = dataLen/8;
+            qint16 dataTemp;
+            double dataTempDouble;
+            quint8 dataLow,dataHigh;
+            int range = dataLen / ui->spinBoxBlockSize->value() - 1;
+            ui->spinBox->setRange(0,range);
+            ui->horizontalSlider_do->setRange(0, range);
+            this->dataRange = range;
+            double *dataRom1 = new double[dataLen + 1];
+            if (this->voltage5v == true) {
+                A = 5.0f;
+            }else {
+                A = 10.0f;
+            }
+            for(quint64 i = 0; i < dataLen; i ++) {
+                dataTemp = 0;
+                dataLow = fileData.at(2*i);
+                dataHigh = fileData.at(2*i + 1);
+                dataTemp = dataHigh;
+                dataTemp |= dataLow << 8;
+                dataTempDouble = dataTemp * 1.0;
+                dataRom1[i] = dataTempDouble / 32768.0 * A;
+            }
+
+            this->dataRomPointerCh0 = dataRom1;
+            ui->spinBoxBlockSize->setEnabled(false);
+            on_spinBox_valueChanged(0);
+        }
     }
 }
 
@@ -1131,7 +1176,7 @@ void MainWindow::on_actionProfile_triggered()
     int ret = 0;
     configDialog *dialog = new configDialog(this);
     dialog->setWindowTitle("配置窗口");
-    ret = dialog->set_config(&this->glabalConfig, this->socket);
+    ret = dialog->set_config(&this->globalConfig, this->socket);
     if (ret != 0) {
         QMessageBox::critical(   this,
                                  tr("错误提示"),
@@ -1235,4 +1280,41 @@ void MainWindow::on_actionconfig_triggered()
 void MainWindow::on_horizontalSlider_do_actionTriggered(int action)
 {
 
+}
+
+
+void MainWindow::on_radioButton1ch_clicked()
+{
+    this->is_ch1_display = ui->radioButton1ch->isChecked();
+    this->is_ch4_display = ui->radioButton4ch->isChecked();
+}
+
+void MainWindow::on_radioButton4ch_clicked()
+{
+    this->is_ch1_display = ui->radioButton1ch->isChecked();
+    this->is_ch4_display = ui->radioButton4ch->isChecked();
+}
+
+void MainWindow::on_comboBox_sample_rate_currentIndexChanged(int index)
+{
+    switch(index) {
+    case 0:
+        this->globalConfig.sampleRateKhz = 10;
+        break;
+    case 1:
+        this->globalConfig.sampleRateKhz = 50;
+        break;
+    case 2:
+        this->globalConfig.sampleRateKhz = 100;
+        break;
+    case 3:
+        this->globalConfig.sampleRateKhz = 150;
+        break;
+    case 4:
+        this->globalConfig.sampleRateKhz = 180;
+        break;
+    case 5:
+        this->globalConfig.sampleRateKhz = 200;
+        break;
+    }
 }
